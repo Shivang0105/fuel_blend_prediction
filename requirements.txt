@@ -2,13 +2,12 @@ streamlit
 pandas
 numpy
 joblib
-plotly
 scikit-learn
+shap==0.41.0
+numba==0.56.4
+catboost
 xgboost
 lightgbm
-catboost
-shap
+plotly
 matplotlib
 seaborn
-streamlit-lottie
-streamlit-javascript

@@ -1124,7 +1124,7 @@ def main():
         if st.button("Run Sensitivity Analysis", use_container_width=True):
             blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
             tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
-            progress_bar = st.progress(0, text="🚀 Launching parallel prediction threads...")
+            progress_bar = st.progress(10, text="🚀 Launching parallel prediction threads...")
             
             results = []
             with concurrent.futures.ThreadPoolExecutor() as executor:

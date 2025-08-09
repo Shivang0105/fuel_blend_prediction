@@ -202,14 +202,12 @@ def load_assets():
             }
 
         scaler = joblib.load(os.path.join(models_dir, 'scaler.pkl'))
-        feature_columns = joblib.load(os.path.join(models_dir, 'feature_columns.pkl'))
-        property_averages = joblib.load(os.path.join(models_dir, 'property_averages.pkl'))
+        feature_columns = scaler.get_feature_names_out()
 
         return {
             "all_models": all_models,
             "scaler": scaler,
             "feature_columns": feature_columns,
-            "property_averages": property_averages
         }
     except FileNotFoundError as e:
         st.error(f"Model file not found: {e}. Please ensure all model and SHAP files are in the 'models' directory.")

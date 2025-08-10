@@ -21,9 +21,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-# --- 1. Backend & Logic Functions ---
+# --- 1. Ba
 # This section contains the real logic to load and run your models.
 def generate_global_shap_summary(df, property_to_explain, assets):
     """
@@ -594,7 +592,7 @@ def get_gif_base64(gif_path):
 def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
     gif_base64 = get_gif_base64(gif_path)
-    render_flow_block("Input Data","55 features","Contains 55 features per fuel blend: 5 volume fractions representing component percentages, and 50 component properties (10 per each of 5 components). These represent chemical, safety, and environmental attributes from real-world Certificates of Analysis (COA).","#6366F1","🗃️")
+    render_flow_block("Input Data","55 features","Contains 55 features per fuel blend: 5 volume fractions representing component percentages, and 50 component properties (10 per each of 5 components).This suite of properties provides a holistic assessment of the fuel, detailing its core physical and chemical nature, critical safety and operational limits, and its full lifecycle environmental impact.","#6366F1","🗃️")
     st.markdown(f"""
         <div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'>
             <img src="data:image/gif;base64,{gif_base64}" width="60" />
@@ -751,7 +749,8 @@ def main():
                 with col2:
                     st.markdown(f"""
                     <div class="logo-container">
-                        <img id="interactive-logo-img" src="data:image/png;base64,{logo_base64}">
+                        <img id="interactive-logo-img" src="data:image/png;base64,{logo_base64}"
+                        style="width:900px; height:auto;">
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -760,9 +759,9 @@ def main():
                 with col2:
                     st.error("⚠️ Logo image not found.")
 
-            st.markdown('<div class="big-title">Blending the Future of Fuel</div>', unsafe_allow_html=True)
+            st.markdown('<div class="big-title">Shell.ai Fuel Blend Hackathon</div>', unsafe_allow_html=True)
             # ... (rest of your page content) ...
-            st.markdown('<div class="subtitle">Reimagining sustainable energy with AI-powered fuel property prediction.</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subtitle">Machine Learning-Powered Fuel Blend Property Prediction</div>', unsafe_allow_html=True)
             
             st.markdown("""
             <div style="text-align:center; max-width:850px; margin:auto; padding-top: 1.5em;">
@@ -920,10 +919,15 @@ def main():
                 st.error(f"❌ **Validation Failed:** {msg}")
             else:
                 st.success("✅ **Validation Passed:** Your data looks good! You can now proceed to prediction.")
-
-            if st.button("➡️ Predict", use_container_width=True, disabled=not is_valid):
-                st.session_state.step = 2
-                st.rerun()
+            col1,col2 = st.columns(2)
+            with col1:
+                if st.button("⬅️ Introduction", use_container_width=True, disabled=not is_valid):
+                    st.session_state.step = 0
+                    st.rerun()
+            with col2:
+                if st.button("➡️ Predict", use_container_width=True, disabled=not is_valid):
+                    st.session_state.step = 2
+                    st.rerun()
     # STEP 2: Predict
     elif st.session_state.step == 2:
         st.header("Step 2: Prediction Results")
@@ -1052,28 +1056,73 @@ def main():
         
         st.subheader("📋 Selected Row Composition")
         st.dataframe(row_data, use_container_width=True, height=80)
-        
         # Radar Chart for Component Fractions
+        col1, col2 = st.columns(2)
+
+        # Shared component list
         components = [f"Component{i}_fraction" for i in range(1, 6)]
-        fractions = [row_data.iloc[0][comp] for comp in components]
-        fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(
-            r=fractions + fractions[:1],
-            theta=components + [components[0]],
-            mode='lines', fill='toself', name='Component Fractions',
-            line=dict(color="#3498db"), fillcolor='rgba(52, 152, 219, 0.4)'
-        ))
-        fig_radar.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1], gridcolor='#444654'),
-                angularaxis=dict(tickfont=dict(size=12), rotation=90),
-                bgcolor='rgba(14, 17, 23, 1)'
-            ),
-            paper_bgcolor='rgba(14, 17, 23, 1)', plot_bgcolor='rgba(14, 17, 23, 1)',
-            font=dict(color="#EAEAEA"), showlegend=False, height=400,
-            title=dict(text="Component Fraction Radar")
-        )
-        st.plotly_chart(fig_radar, use_container_width=True)
+
+        # First radar: Original fractions
+        with col1:
+            fractions = [row_data.iloc[0][comp] for comp in components]
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(
+                r=fractions + fractions[:1],
+                theta=components + [components[0]],
+                mode='lines',
+                fill='toself',
+                name='Original Fractions',
+                line=dict(color="#3498db"),
+                fillcolor='rgba(52, 152, 219, 0.4)'
+            ))
+            fig_radar.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=[0, 1], gridcolor='#444654'),
+                    angularaxis=dict(tickfont=dict(size=12), rotation=90),
+                    bgcolor='rgba(14, 17, 23, 1)'
+                ),
+                paper_bgcolor='rgba(14, 17, 23, 1)',
+                plot_bgcolor='rgba(14, 17, 23, 1)',
+                font=dict(color="#EAEAEA"),
+                showlegend=False,
+                height=400,
+                title=dict(text="Original Component Fractions")
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+        with col2:
+            properties = [f"BlendProperty{i}" for i in range(1, 11)]
+            fractions_modified = [row_data.iloc[0][prop] for prop in properties]
+
+            # Calculate the range dynamically
+            max_val = max(fractions_modified)
+            radial_range = [0, max_val + .1]
+
+            fig_radar_modified = go.Figure()
+            fig_radar_modified.add_trace(go.Scatterpolar(
+                r=fractions_modified + fractions_modified[:1],
+                theta=properties + [properties[0]],
+                mode='lines',
+                fill='toself',
+                name='Modified Fractions',
+                line=dict(color="#e67e22"),
+                fillcolor='rgba(230, 126, 34, 0.4)'
+            ))
+            fig_radar_modified.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=True, range=radial_range, gridcolor='#444654'),
+                    angularaxis=dict(tickfont=dict(size=12), rotation=90),
+                    bgcolor='rgba(14, 17, 23, 1)'
+                ),
+                paper_bgcolor='rgba(14, 17, 23, 1)',
+                plot_bgcolor='rgba(14, 17, 23, 1)',
+                font=dict(color="#EAEAEA"),
+                showlegend=False,
+                height=400,
+                title=dict(text="Modified Component Fractions")
+            )
+            st.plotly_chart(fig_radar_modified, use_container_width=True)
+
+
 
         # --- Replace your existing SHAP section with this ---
         st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
@@ -1150,6 +1199,9 @@ def main():
                 yaxis_title="Predicted Value", template="plotly_dark", height=600
             )
             st.plotly_chart(fig_sensitivity, use_container_width=True)
+        if st.button("⬅️ Prediction", use_container_width=True):
+            st.session_state.step = 2
+            st.rerun()
 
                 
 if __name__ == "__main__":

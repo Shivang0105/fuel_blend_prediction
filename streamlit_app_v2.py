@@ -20,6 +20,7 @@ import shap
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from streamlit.components.v1 import html
 
 # --- 1. Ba
 # This section contains the real logic to load and run your models.
@@ -671,188 +672,219 @@ def main():
     if 'step' not in st.session_state:
         st.session_state.step = 0
     if st.session_state.step == 0:
-        # Global page styling and animation CSS
         st.markdown("""
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-                html, body, [class*="css"] {
-                    font-family: 'Inter', sans-serif;
-                    background-color: #0d1117;
-                    color: #cbd5e1;
+                .stApp {
+                    background: transparent !important;
                 }
-                .stApp { background-color: #0d1117; }
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Orbitron:wght@500;700&display=swap');
 
-                /* Gate: hide rest until title animation completes */
+                .stApp {
+                    background: radial-gradient(ellipse at bottom, #0d1117 0%, #000000 80%),
+                                url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1920&q=80');
+                    background-size: cover;
+                    background-attachment: fixed;
+                    background-position: center;
+                }
+
+                /* Background: sci-fi gradient + faint moving stars */
+                body::before {
+                    content: '';
+                    position: fixed;
+                    inset: 0;
+                    background: url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
+                    background-size: 300px 300px;
+                    background-position: var(--star-offset-x, 0px) var(--star-offset-y, 0px);
+                    opacity: 0.15;
+                    z-index: -2;
+                    pointer-events: none;
+                    will-change: background-position;
+                }
+
+                body::after {
+                    content: '';
+                    position: fixed;
+                    top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+                    opacity: 0.15;
+                    animation: starDrift 60s linear infinite;
+                    z-index: -1;
+                }
+                @keyframes starDrift {
+                    from { background-position: 0 0; }
+                    to { background-position: 1000px 1000px; }
+                }
+
+                /* Hidden gate */
                 .hidden-until-ready {
                     opacity: 0;
                     pointer-events: none;
-                    transition: opacity 0.6s ease;
+                    transition: opacity 0.8s ease;
                 }
                 .hidden-until-ready.ready {
                     opacity: 1;
                     pointer-events: auto;
                 }
 
-                /* Title animation with glow */
-                @keyframes zoomAndSettle {
+                /* Sci-fi glow animation */
+                @keyframes zoomGlow {
                     0% {
-                        transform: scale(2.0);
+                        transform: scale(1.8);
                         opacity: 0;
                         text-shadow: none;
                     }
                     50% {
-                        transform: scale(2.0);
+                        transform: scale(1.8);
                         opacity: 1;
-                        text-shadow: 0 0 30px rgba(212,175,55,0.5), 0 0 60px rgba(248,241,229,0.3);
+                        text-shadow: 0 0 35px rgba(0,255,180,0.7), 0 0 70px rgba(0,180,255,0.4);
                     }
                     100% {
                         transform: scale(1);
                         opacity: 1;
-                        text-shadow: 0 0 8px rgba(212,175,55,0.2);
+                        text-shadow: 0 0 12px rgba(0,255,180,0.4);
                     }
                 }
 
-
-                /* Class-driven trigger so we can force animation to start after mount */
+                /* Logo text */
                 #text-logo {
-                    opacity: 0;
-                    transform: scale(1);
-                    background: linear-gradient(135deg, #d4af37, #f8f1e5, #c0a060);
+                    font-family: 'Orbitron', sans-serif;
+                    background: linear-gradient(135deg, #00FFB4, #00A8FF, #C0FFD0);
                     -webkit-background-clip: text;
                     background-clip: text;
                     -webkit-text-fill-color: transparent;
-                    font-size: 4.5em;
+                    font-size: 4.8em;
                     font-weight: 900;
-                    letter-spacing: 1px;
-                    line-height: 1.2;
-                    margin: 0.5em 0;
-                    will-change: transform, opacity, text-shadow;
+                    letter-spacing: 2px;
+                    opacity: 0;
                 }
-
                 #text-logo.animate {
-                    animation: zoomAndSettle 2.8s forwards cubic-bezier(0.16, 1, 0.3, 1) !important;
+                    animation: zoomGlow 2.6s forwards cubic-bezier(0.16, 1, 0.3, 1);
                 }
-
-                /* Sub-elements fade in after title */
+                /* Fade-in elements */
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-                .hero-container {
-                    min-height: 100vh;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    text-align: center;
-                    padding: 2rem;
-                    overflow: hidden;
-                }
-
                 .hero-subtitle, .hero-tagline, .scroll-button-wrapper {
                     opacity: 0;
                     animation: fadeIn 1.5s forwards;
                 }
-                .hero-subtitle { animation-delay: 2.8s; font-size: 1.25em; color: #94a3b8; }
-                .hero-tagline { animation-delay: 3.1s; font-size: 1.4em; font-weight: 700; margin-top: 1.5em; }
-                .hero-tagline .highlight { color: #4ade80; }
-                .scroll-button-wrapper { animation-delay: 3.4s; margin-top: 2.5em; }
+                .hero-subtitle {
+                    animation-delay: 2.6s;
+                    font-size: 1.25em;
+                    color: #7ACCBF;
+                }
+                .hero-tagline {
+                    animation-delay: 3.0s;
+                    font-size: 1.4em;
+                    font-weight: 600;
+                    margin-top: 1.5em;
+                    color: #A8F5E2;
+                }
+                .hero-tagline .highlight {
+                    color: #00FFB4;
+                }
+                .scroll-button-wrapper {
+                    animation-delay: 3.4s;
+                    margin-top: 2.5em;
+                }
+                .dark-container {
+                    background: rgba(0, 0, 0, 0.4); /* Semi-transparent dark */
+                    border-radius: 16px;
+                    padding: 2em;
+                    margin: 2em auto;
+                    max-width: 1200px;
+                    box-shadow: 0 0 30px rgba(0, 255, 180, 0.15);
+                }
 
                 #scroll-button {
-                    background: transparent; border: 2px solid #4ade80; color: #4ade80;
-                    padding: 10px 22px; font-size: 1em; font-weight: 700;
-                    border-radius: 50px; cursor: pointer; transition: all 0.3s ease;
+                    background: transparent;
+                    border: 2px solid #00FFB4;
+                    color: #00FFB4;
+                    padding: 10px 22px;
+                    font-size: 1em;
+                    font-weight: 700;
+                    border-radius: 50px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 0 12px rgba(0,255,180,0.3);
                 }
-                #scroll-button:hover { background-color: #4ade80; color: #0d1117; }
+                #scroll-button:hover {
+                    background-color: #00FFB4;
+                    color: #05070D;
+                    box-shadow: 0 0 20px rgba(0,255,180,0.6);
+                }
 
                 .section-header {
-                    text-align: center; font-size: 2.2em; font-weight: 700;
-                    margin-top: 2em; margin-bottom: 1em; color: #f1f5f9;
+                    text-align: center;
+                    font-size: 2.2em;
+                    font-weight: 700;
+                    margin-top: 2em;
+                    margin-bottom: 1em;
+                    color: #D0F5E9;
+                    text-shadow: 0 0 15px rgba(0,255,180,0.4);
                 }
-                #text-logo {
-                    opacity: 0;
-                    transform: scale(1);
-                    background: linear-gradient(135deg, #d4af37, #f8f1e5, #c0a060);
-                    -webkit-background-clip: text;
-                    background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    font-size: 4.5em;
-                    font-weight: 900;
-                    letter-spacing: 1px;
-                    line-height: 1.2;
-                    margin: 0.5em 0;
-                    will-change: transform, opacity, text-shadow;
-                }
-                #text-logo.animate {
-                    animation: zoomAndSettle 2.8s forwards cubic-bezier(0.16, 1, 0.3, 1) !important;
-                }
-                    
             </style>
+            <script>
+            document.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                // Parallax effect — smaller movement than scroll amount
+                const offsetX = scrollY * 0.05;
+                const offsetY = scrollY * 0.1;
+                document.body.style.setProperty('--star-offset-x', `${offsetX}px`);
+                document.body.style.setProperty('--star-offset-y', `${offsetY}px`);
+            });
+            </script>
         """, unsafe_allow_html=True)
-
-        # Hero section: shows first, animates title
+        # Hero section
         st.markdown("""
-            <div class="hero-container">
+            <div class="hero-container" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
                 <h1 id="text-logo">Shell.ai Fuel Blend Challenge</h1>
-                <p class="hero-subtitle">Machine Learning-Powered Fuel Blend Property Prediction</p>
-                <p class="hero-tagline">In a world chasing <span class="highlight">net-zero</span>, fuel is no longer just a commodity — it's a <span class="highlight">climate lever.</span></p>
+                <p class="hero-subtitle">Nature-inspired, AI-driven fuel innovation</p>
+                <p class="hero-tagline">Blending <span class="highlight">machine intelligence</span> with <span class="highlight">planet-first design</span>.</p>
                 <div class="scroll-button-wrapper">
-                    <button id="scroll-button">See How It Works ↓</button>
+                    <button id="scroll-button">Explore ↓</button>
                 </div>
             </div>
         """, unsafe_allow_html=True)
-        # Force-start the title animation via class toggle (robust to Streamlit remounts)
-        st.markdown("""
-            <script>
-                const title = document.getElementById('text-logo');
-                if (title) {
-                    title.classList.remove('animate');
-                    void title.offsetWidth; // reflow to reset animation
-                    title.classList.add('animate');
-                }
-                // Reset scroll on first paint to avoid racing with Streamlit layout
-                window.requestAnimationFrame(() => window.scrollTo(0, 0));
-            </script>
-        """, unsafe_allow_html=True)
 
-        # Gate wrapper: rest of the content stays hidden until animation end
         st.markdown('<div id="main-content" class="hidden-until-ready">', unsafe_allow_html=True)
 
-        # ----- Your existing sectioned content below -----
+        # Rest of your sections
         lottie_url = "https://assets9.lottiefiles.com/packages/lf20_vgiqdeca.json"
         lottie_json = load_lottieurl(lottie_url)
         if lottie_json:
             st_lottie(lottie_json, height=300, speed=1, quality="high")
 
         st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
+
         col1, col2, col3 = st.columns(3)
         with col1:
             render_flow_block(
-                "Calibrated Predictions",
+                "Quantum-Calibrated Predictions",
                 "Confidence-tuned ensemble outputs.",
-                "Our models are calibrated to provide not just predictions, but a reliable measure of confidence, ensuring trustworthy results.",
-                "#2ECC71", "📈", "95%"
+                "Our models are calibrated with quantum-inspired optimization for precision and trust.",
+                "#00FFB4", "📈", "95%"
             )
         with col2:
             render_flow_block(
-                "Feature Engineering",
-                "Creates derived features & weights.",
-                "Automated creation of hundreds of insightful features that capture complex interactions between components.",
-                "#4B4BAF", "🧮", "95%"
+                "Bio-Inspired Feature Engineering",
+                "Derives signals from nature's patterns.",
+                "Hundreds of engineered features mimic natural optimization systems.",
+                "#00A8FF", "🧬", "95%"
             )
         with col3:
             render_flow_block(
-                "Model Stacking",
-                "Combines strengths of multiple learners.",
-                "We use a meta-learning approach, where a final model learns to optimally weigh the predictions from our base models.",
-                "#7F8C8D", "🛠️", "95%"
+                "Stacked AI Models",
+                "Multiple minds, one decision.",
+                "Meta-learning architecture synthesizes strengths of specialized models.",
+                "#7ACCBF", "🤖", "95%"
             )
-
-        st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">The Power Core</div>', unsafe_allow_html=True)
         render_flow_diagram()
 
         st.markdown("""
             <div style="text-align:center; padding:2em 0; margin-top:2em;">
-                <h2 style="color:#4ade80;">Are You Ready to Predict the Future of Fuel?</h2>
-                <p style="color:#94a3b8;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
+                <h2 style="color:#00FFB4;">Ready to Predict the Future of Fuel?</h2>
+                <p style="color:#7ACCBF;">Step into our AI-powered bio-digital lab for sustainable fuel blends.</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -860,33 +892,30 @@ def main():
             st.session_state.step = 1
             st.rerun()
 
-        # Close gate wrapper
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # JS: reveal main content after title animation completes; enable smooth scroll
+        # Reveal after animation
         st.markdown("""
             <script>
-                const gate = document.getElementById('main-content');
-                const scrollButton = document.getElementById('scroll-button');
-                const title2 = document.getElementById('text-logo');
+            const gate = document.getElementById('main-content');
+            const scrollButton = document.getElementById('scroll-button');
+            const title = document.getElementById('text-logo');
 
-                if (title2 && gate) {
-                    // Reveal when the animation ends
-                    title2.addEventListener('animationend', (e) => {
-                        if (e.animationName === 'zoomAndSettle') {
-                            gate.classList.add('ready');
-                        }
-                    });
-                }
-
-                if (scrollButton && gate) {
-                    scrollButton.onclick = function() {
-                        gate.scrollIntoView({ behavior: 'smooth' });
+            if (title && gate) {
+                title.classList.add('animate');
+                title.addEventListener('animationend', (e) => {
+                    if (e.animationName === 'zoomGlow') {
+                        gate.classList.add('ready');
                     }
+                });
+            }
+            if (scrollButton && gate) {
+                scrollButton.onclick = function() {
+                    gate.scrollIntoView({ behavior: 'smooth' });
                 }
+            }
             </script>
         """, unsafe_allow_html=True)
-
         return
 
 # --- ✨ Display the progress bar on all subsequent steps ---

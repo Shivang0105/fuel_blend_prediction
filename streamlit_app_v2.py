@@ -66,7 +66,7 @@ def generate_global_shap_summary(df, property_to_explain, assets):
     plt.close(fig)
 
 def generate_shap_force_plot(row_data, property_to_explain, assets):
-    """Generates a SHAP force plot with rounded values for light themes."""
+    """Generates a SHAP force plot with rounded values for light themes, showing only original features."""
     # --- Data prep ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
@@ -78,13 +78,16 @@ def generate_shap_force_plot(row_data, property_to_explain, assets):
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
 
-    X_display = X_single.copy()
+    # --- MODIFIED: Filter features to show only original inputs ---
+    filtered_shap_values, filtered_X_single = _filter_shap_features(shap_values, X_single)
+
+    X_display = filtered_X_single.copy()
     X_display.iloc[0] = X_display.iloc[0].round(2)
 
     # --- Plotting ---
     fig = shap.force_plot(
-        shap_values.base_values[0],
-        shap_values.values[0],
+        filtered_shap_values.base_values[0],
+        filtered_shap_values.values[0],
         X_display.iloc[0],
         matplotlib=True,
         show=False,
@@ -100,7 +103,7 @@ def generate_shap_force_plot(row_data, property_to_explain, assets):
     plt.close(fig)
 
 def generate_shap_decision_plot(row_data, property_to_explain, assets):
-    """Generates a beautified SHAP decision plot for light themes."""
+    """Generates a beautified SHAP decision plot for light themes, showing only original features."""
     # --- Data prep ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
@@ -112,9 +115,60 @@ def generate_shap_decision_plot(row_data, property_to_explain, assets):
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
 
+    # --- MODIFIED: Filter features to show only original inputs ---
+    filtered_shap_values, filtered_X_single = _filter_shap_features(shap_values, X_single)
+
     # --- Plotting ---
     plt.figure(figsize=(10, 6))
-    shap.decision_plot(shap_values.base_values[0], shap_values.values[0], X_single.iloc[0], show=False)
+    shap.decision_plot(
+        filtered_shap_values.base_values[0],
+        filtered_shap_values.values[0],
+        filtered_X_single.iloc[0],
+        show=False
+    )
+
+    fig = plt.gcf()
+    ax = plt.gca()
+
+    # Styling for light theme
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    plt.tick_params(colors='black')
+    ax.xaxis.label.set_color('black')
+    ax.yaxis.label.set_color('black')
+    ax.title.set_color('black')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('black')
+    ax.spines['bottom'].set_color('black')
+
+    st.pyplot(fig, bbox_inches='tight')
+    plt.close(fig)
+
+def generate_shap_waterfall_plot(row_data, property_to_explain, assets):
+    """
+    Generates a SHAP waterfall plot for light themes, showing only original features.
+    """
+    # --- 1. SETUP & DATA PREPARATION ---
+    target_num = int(property_to_explain.split('BlendProperty')[1])
+    target_name = f'BlendProperty{target_num}'
+    shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
+    explainer = shap_assets_dict['explainer']
+    features_df = create_features(row_data)
+    features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
+    scaled_features = assets['scaler'].transform(features_df)
+    X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
+    shap_values = explainer(X_single)
+
+    # --- MODIFIED: Filter features to show only original inputs ---
+    filtered_shap_values, _ = _filter_shap_features(shap_values, X_single)
+
+    # --- 2. PLOTTING THE WATERFALL GRAPH ---
+    N_FEATURES_TO_SHOW = 20
+    plt.figure(figsize=(8, 6))
+
+    # Pass the first instance of the filtered explanation object
+    shap.waterfall_plot(filtered_shap_values[0], max_display=N_FEATURES_TO_SHOW, show=False)
 
     fig = plt.gcf()
     ax = plt.gca()
@@ -127,13 +181,9 @@ def generate_shap_decision_plot(row_data, property_to_explain, assets):
     ax.yaxis.label.set_color('black')
     ax.title.set_color('black')
 
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('black')
-    ax.spines['bottom'].set_color('black')
-
     st.pyplot(fig, bbox_inches='tight')
     plt.close(fig)
+
 def create_features(df):
     """This function must be IDENTICAL to the one in your training script."""
     df = df.copy()
@@ -194,44 +244,7 @@ def load_assets():
     except FileNotFoundError as e:
         st.error(f"Model file not found: {e}. Please ensure all model and SHAP files are in the 'models' directory.")
         return None
-def generate_shap_waterfall_plot(row_data, property_to_explain, assets):
-    """
-    Generates a SHAP waterfall plot with a custom size for light themes.
-    """
-    # --- 1. SETUP & DATA PREPARATION ---
-    target_num = int(property_to_explain.split('BlendProperty')[1])
-    target_name = f'BlendProperty{target_num}'
 
-    shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
-    explainer = shap_assets_dict['explainer']
-
-    features_df = create_features(row_data)
-    features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
-    scaled_features = assets['scaler'].transform(features_df)
-
-    X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
-    shap_values = explainer(X_single)
-
-    # --- 2. PLOTTING THE WATERFALL GRAPH ---
-    N_FEATURES_TO_SHOW = 10
-
-    plt.figure(figsize=(8, 6))
-
-    shap.waterfall_plot(shap_values[0], max_display=N_FEATURES_TO_SHOW, show=False)
-
-    fig = plt.gcf()
-    ax = plt.gca()
-
-    # Styling for light theme
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-    plt.tick_params(colors='black')
-    ax.xaxis.label.set_color('black')
-    ax.yaxis.label.set_color('black')
-    ax.title.set_color('black')
-
-    st.pyplot(fig, bbox_inches='tight')
-    plt.close(fig)
 def predict_properties(input_df, assets):
     """
     Runs the prediction pipeline for single or batch DataFrame input.
@@ -424,7 +437,7 @@ def validate_batch_input(df, num_components=5, num_properties=10):
     if extra_cols:
         return False, f"Uploaded CSV has unexpected extra columns: {extra_cols}"
 
-    if df. op(columns=['ID'], errors='ignore').isnull().any().any():
+    if df.drop(columns=['ID'], errors='ignore').isnull().any().any():
         nan_locations = df.drop(columns=['ID'], errors='ignore').isnull()
         problem_rows = df.loc[nan_locations.any(axis=1), 'ID'].tolist()
         return False, f"Uploaded CSV contains missing (NaN) values. Check rows with IDs: {problem_rows[:5]}"
@@ -538,6 +551,49 @@ def render_flow_block(title, subtitle, detail, color, icon="💡", width="300px"
 def get_gif_base64(gif_path):
     with open(gif_path, "rb") as f:
         return base64.b64encode(f.read()).decode()
+
+def _filter_shap_features(shap_explanation, features_df):
+    """
+    Filters a SHAP Explanation object and a feature DataFrame to include only
+    the original input features (ComponentX_fraction and ComponentX_PropertyY).
+    """
+    # Get all feature names from the DataFrame
+    all_feature_names = features_df.columns.tolist()
+
+    # Define the pattern for the features we want to keep
+    desired_features = [
+        f for f in all_feature_names
+        if 'Component' in f and ('_fraction' in f or '_Property' in f)
+    ]
+
+    # If no desired features are found, return the originals to avoid errors
+    if not desired_features:
+        return shap_explanation, features_df
+
+    # Get indices from the SHAP explanation's feature list to slice its arrays correctly
+    try:
+        shap_feature_names = shap_explanation.feature_names
+        desired_indices = [shap_feature_names.index(f) for f in desired_features]
+    except (ValueError, AttributeError):
+        # Fallback if a feature name is missing or the attribute doesn't exist
+        return shap_explanation, features_df
+
+    # Filter the SHAP Explanation object's internal arrays
+    filtered_values = shap_explanation.values[:, desired_indices]
+    filtered_data = shap_explanation.data[:, desired_indices]
+
+    # Create the new, filtered Explanation object
+    new_explanation = shap.Explanation(
+        values=filtered_values,
+        base_values=shap_explanation.base_values,
+        data=filtered_data,
+        feature_names=desired_features
+    )
+
+    # Filter the corresponding DataFrame
+    filtered_features_df = features_df[desired_features]
+
+    return new_explanation, filtered_features_df
 
 def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
@@ -963,12 +1019,7 @@ def main():
         st.subheader("📡 Blend Composition Radars")
 
         # --- CONTROLS MOVED ABOVE COLUMNS FOR ALIGNMENT ---
-        comp_to_show = st.selectbox(
-            "Select Component to View Properties (for Right Chart):",
-            options=[1, 2, 3, 4, 5],
-            format_func=lambda x: f"Component {x}",
-            key="prop_radar_selector"
-        )
+        comp_to_show = 1
 
         col1, col2 = st.columns(2)
         with col1:

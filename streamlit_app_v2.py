@@ -7,26 +7,20 @@ import plotly.graph_objects as go
 import os
 import uuid
 import base64
-import os
 from streamlit_javascript import st_javascript
-import plotly.graph_objects as go
-from streamlit_lottie import st_lottie
 from streamlit_lottie import st_lottie
 import requests
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 import time
 import shap
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from streamlit.components.v1 import html
 
-# --- 1. Ba
+# --- 1. Backend & Logic Functions ---
 # This section contains the real logic to load and run your models.
 def generate_global_shap_summary(df, property_to_explain, assets):
     """
-    Generates a global SHAP summary (beeswarm) plot for the entire dataset.
+    Generates a global SHAP summary (beeswarm) plot for the entire dataset, styled for a light theme.
     """
     # --- 1. Setup ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
@@ -41,110 +35,102 @@ def generate_global_shap_summary(df, property_to_explain, assets):
     X_full = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
 
     # --- 3. Calculate SHAP values for the ENTIRE dataframe ---
-    # This is the computationally intensive step
     shap_values = explainer(X_full)
 
-    # --- 4. Plotting ---
-    plt.style.use('dark_background')
-    plt.figure(figsize=(12, 8)) # Use a larger figure for this detailed plot
+    # --- 4. Plotting (Light Theme) ---
+    plt.figure(figsize=(12, 8))
 
     # Generate the beeswarm summary plot
     shap.summary_plot(shap_values, X_full, show=False)
-    
+
     fig = plt.gcf()
     ax = plt.gca()
-    
-    # Styling for dark theme
-    fig.patch.set_facecolor('#0E1117')
-    ax.set_facecolor('#0E1117')
-    plt.tick_params(colors='white')
-    ax.xaxis.label.set_color('white')
-    ax.yaxis.label.set_color('white')
-    
+
+    # Styling for light theme
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    plt.tick_params(colors='black')
+    ax.xaxis.label.set_color('black')
+    ax.yaxis.label.set_color('black')
+    ax.title.set_color('black')
+
     # Find the colorbar axis and style its text
     try:
-        cb_ax = fig.axes[1] 
-        cb_ax.tick_params(labelcolor="white")
-        cb_ax.set_ylabel(cb_ax.get_ylabel(), color="white")
+        cb_ax = fig.axes[1]
+        cb_ax.tick_params(labelcolor="black")
+        cb_ax.set_ylabel(cb_ax.get_ylabel(), color="black")
     except IndexError:
-        # Handle cases where a colorbar might not be present
         pass
 
     st.pyplot(fig, bbox_inches='tight')
     plt.close(fig)
+
 def generate_shap_force_plot(row_data, property_to_explain, assets):
-    """Generates a beautified SHAP force plot with rounded values for dark themes."""
+    """Generates a SHAP force plot with rounded values for light themes."""
     # --- Data prep ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
     shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
-    explainer = shap_assets_dict['explainer'] 
+    explainer = shap_assets_dict['explainer']
     features_df = create_features(row_data)
     features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
     scaled_features = assets['scaler'].transform(features_df)
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
-    
-    # --- THIS IS THE FIX ---
-    # Create a new dataframe with values rounded to 3 decimal places for display
+
     X_display = X_single.copy()
     X_display.iloc[0] = X_display.iloc[0].round(2)
 
     # --- Plotting ---
-    plt.style.use('dark_background')
-    
-    # Pass the rounded X_display data to the plot function
     fig = shap.force_plot(
-        shap_values.base_values[0], 
-        shap_values.values[0], 
-        X_display.iloc[0], 
-        matplotlib=True, 
-        show=False
+        shap_values.base_values[0],
+        shap_values.values[0],
+        X_display.iloc[0],
+        matplotlib=True,
+        show=False,
+        text_rotation=10
     )
-    
-    # Styling
-    fig.patch.set_facecolor('#0E1117')
+
+    # Styling for light theme
+    fig.patch.set_facecolor('white')
     for text in fig.findobj(plt.Text):
-        text.set_color('white')
+        text.set_color('black')
 
     st.pyplot(fig, bbox_inches='tight')
     plt.close(fig)
+
 def generate_shap_decision_plot(row_data, property_to_explain, assets):
-    """Generates a beautified SHAP decision plot for dark themes."""
-    # --- Data prep is identical to the other functions ---
+    """Generates a beautified SHAP decision plot for light themes."""
+    # --- Data prep ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
     shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
-    explainer = shap_assets_dict['explainer'] 
+    explainer = shap_assets_dict['explainer']
     features_df = create_features(row_data)
     features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
     scaled_features = assets['scaler'].transform(features_df)
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
-    
+
     # --- Plotting ---
-    plt.style.use('dark_background')
-
-    # 1. Create a figure with a specific size first
     plt.figure(figsize=(10, 6))
-
-    # 2. Call decision_plot WITHOUT the 'ax' argument. It will draw on the figure we just made.
     shap.decision_plot(shap_values.base_values[0], shap_values.values[0], X_single.iloc[0], show=False)
-    
-    # 3. Get the current figure and axes for styling
+
     fig = plt.gcf()
     ax = plt.gca()
-    
-    # Styling
-    fig.patch.set_facecolor('#0E1117')
-    ax.set_facecolor('#0E1117')
-    plt.tick_params(colors='white')
-    ax.xaxis.label.set_color('white')
-    ax.yaxis.label.set_color('white')
-    
-    # Hide the top and right borders for a cleaner look
+
+    # Styling for light theme
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    plt.tick_params(colors='black')
+    ax.xaxis.label.set_color('black')
+    ax.yaxis.label.set_color('black')
+    ax.title.set_color('black')
+
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('black')
+    ax.spines['bottom'].set_color('black')
 
     st.pyplot(fig, bbox_inches='tight')
     plt.close(fig)
@@ -193,10 +179,7 @@ def load_assets():
                 'nn_ensemble': joblib.load(os.path.join(models_dir, f'nn_target{target_num}.pkl')),
                 'meta_model': joblib.load(os.path.join(models_dir, f'meta_target{target_num}.pkl')),
                 'iso_reg': joblib.load(os.path.join(models_dir, f'iso_target{target_num}.pkl')),
-                
-                # --- ADD THIS LINE TO LOAD THE SHAP EXPLAINER ---
                 'shap_explainer': joblib.load(os.path.join(models_dir, f'shap_target{target_num}.pkl')),
-                
                 'blend_info': joblib.load(os.path.join(models_dir, f'blend_info_target{target_num}.pkl'))
             }
 
@@ -213,45 +196,40 @@ def load_assets():
         return None
 def generate_shap_waterfall_plot(row_data, property_to_explain, assets):
     """
-    Generates a beautified SHAP waterfall plot with a custom size for dark themes.
+    Generates a SHAP waterfall plot with a custom size for light themes.
     """
-    # --- 1. SETUP & DATA PREPARATION (No changes here) ---
+    # --- 1. SETUP & DATA PREPARATION ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
-    
+
     shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
-    explainer = shap_assets_dict['explainer'] 
-    
+    explainer = shap_assets_dict['explainer']
+
     features_df = create_features(row_data)
     features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
     scaled_features = assets['scaler'].transform(features_df)
-    
+
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
-    
+
     # --- 2. PLOTTING THE WATERFALL GRAPH ---
     N_FEATURES_TO_SHOW = 10
-    plt.style.use('dark_background')
-    
-    # --- THIS IS THE LINE THAT CONTROLS THE SIZE ---
-    # It creates the canvas that SHAP will draw on.
-    plt.figure(figsize=(8, 6)) # Set a noticeable size (10-inch width, 6-inch height)
 
-    # SHAP will now draw on the figure we just created and sized
+    plt.figure(figsize=(8, 6))
+
     shap.waterfall_plot(shap_values[0], max_display=N_FEATURES_TO_SHOW, show=False)
-    
-    # Get the current figure and axes for further styling
+
     fig = plt.gcf()
     ax = plt.gca()
-    
-    # Styling for dark theme
-    fig.patch.set_facecolor('#0E1117')
-    ax.set_facecolor('#0E1117')
-    plt.tick_params(colors='white')
-    ax.xaxis.label.set_color('white')
-    ax.yaxis.label.set_color('white')
 
-    # Display the plot in Streamlit
+    # Styling for light theme
+    fig.patch.set_facecolor('white')
+    ax.set_facecolor('white')
+    plt.tick_params(colors='black')
+    ax.xaxis.label.set_color('black')
+    ax.yaxis.label.set_color('black')
+    ax.title.set_color('black')
+
     st.pyplot(fig, bbox_inches='tight')
     plt.close(fig)
 def predict_properties(input_df, assets):
@@ -289,10 +267,7 @@ def predict_properties(input_df, assets):
         final_prediction = np.clip(final_blend, blend_info['min'], blend_info['max'])
         all_predictions.append(final_prediction)  # shape (n_samples,)
 
-    # all_predictions is a list of 10 arrays, each of shape (n_samples,).
-    # Stack and transpose: shape (n_samples, 10)
     return np.vstack(all_predictions).T
-import plotly.graph_objects as go
 
 def plot_fraction_sums(df):
     """
@@ -300,19 +275,16 @@ def plot_fraction_sums(df):
     highlighting rows where the sum is not equal to 1.
     """
     temp_df = df.copy()
-    # Dynamically find fraction columns to make it robust
     frac_cols = [col for col in temp_df.columns if 'fraction' in col and col.startswith('Component')]
-    
+
     if not frac_cols:
-        # Return an empty figure with a message if no fraction columns are found
         fig = go.Figure()
-        fig.update_layout(title="No fraction columns found to validate.", paper_bgcolor='rgba(14, 17, 23, 1)', plot_bgcolor='rgba(14, 17, 23, 1)')
+        fig.update_layout(title="No fraction columns found to validate.")
         return fig
 
     temp_df['fraction_sum'] = temp_df[frac_cols].sum(axis=1)
     temp_df['Status'] = np.where(np.isclose(temp_df['fraction_sum'], 1.0, atol=1e-4), 'Valid (Sum ≈ 1.0)', 'Invalid (Sum ≠ 1.0)')
-    
-    # Use 'ID' for the x-axis if it exists, otherwise use the dataframe index
+
     x_axis = temp_df['ID'] if 'ID' in temp_df.columns else temp_df.index
 
     fig = px.bar(
@@ -320,34 +292,29 @@ def plot_fraction_sums(df):
         x=x_axis,
         y='fraction_sum',
         color='Status',
-        title="⚖️ Fraction Sum Validation",
+        title="⚖ Fraction Sum Validation",
         labels={'fraction_sum': 'Sum of Fractions', 'x': 'Row ID'},
         color_discrete_map={
             'Valid (Sum ≈ 1.0)': '#28a745',  # Green
-            'Invalid (Sum ≠ 1.0)': '#dc3545'  # Red
+            'Invalid (Sum ≠ 1.0)': '#dc3545'   # Red
         },
-        template="plotly_dark"
+        template="plotly_white"
     )
-    # Add a reference line at y=1.0 for easy comparison
-    fig.add_hline(y=1.0, line_dash="dot", line_color="white", annotation_text="Target Sum = 1.0", annotation_position="bottom right")
+    fig.add_hline(y=1.0, line_dash="dot", line_color="gray", annotation_text="Target Sum = 1.0", annotation_position="bottom right")
     fig.update_layout(
         height=400,
         margin=dict(t=40, l=0, r=0, b=0),
         xaxis_title="Rows",
         yaxis_title="Sum of Fractions",
-        paper_bgcolor='rgba(14, 17, 23, 1)',
-        plot_bgcolor='rgba(14, 17, 23, 1)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
     )
     return fig
-# Helper function to encode image to base64
 def image_to_base64(path):
     """Converts a local image file to a base64 string."""
     with open(path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode()
 def plot_missing_matrix(df):
-    import plotly.graph_objects as go
-    import numpy as np
-
     mask = df.isnull().astype(int)
 
     fig = go.Figure(data=go.Heatmap(
@@ -355,8 +322,8 @@ def plot_missing_matrix(df):
         x=list(range(mask.shape[1])),
         y=list(range(mask.shape[0])),
         colorscale=[[0, 'rgba(40, 167, 69, 0.7)'], [1, 'rgba(220, 53, 69, 1)']],
-        zmin=0,  # Force the minimum of the color scale to 0
-        zmax=1,  # Force the maximum of the color scale to 1
+        zmin=0,
+        zmax=1,
         showscale=False,
         hovertemplate='Row %{y}, Column %{x}<extra></extra>'
     ))
@@ -367,8 +334,8 @@ def plot_missing_matrix(df):
         margin=dict(t=40, l=0, r=0, b=0),
         xaxis=dict(showgrid=False, showticklabels=False, title="Features (Columns)"),
         yaxis=dict(showgrid=False, showticklabels=False, title="Rows"),
-        paper_bgcolor='rgba(14, 17, 23, 1)',
-        plot_bgcolor='rgba(14, 17, 23, 1)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(240, 242, 246, 0.8)', # A slight off-white for the plot area
     )
     return fig
 
@@ -379,17 +346,17 @@ def run_sensitivity_analysis(input_df, assets, property_to_analyze, component_to
     analysis_results = []
     for new_fraction in np.linspace(0, 1, 20):
         temp_df = input_df.copy()
-        vary_idx = component_to_vary - 1 
+        vary_idx = component_to_vary - 1
         temp_df[f'Component{component_to_vary}_fraction'] = new_fraction
         other_indices = [i for i in range(5) if i != vary_idx]
         sum_of_others_base = sum(base_fractions[i] for i in other_indices)
-        
+
         if sum_of_others_base > 0:
             remaining_fraction = 1.0 - new_fraction
             for i in other_indices:
                 proportion = base_fractions[i] / sum_of_others_base
                 temp_df[f'Component{i+1}_fraction'] = remaining_fraction * proportion
-        
+
         predictions = predict_properties(temp_df, assets)
         property_index = int(property_to_analyze.split('BlendProperty')[1]) - 1
         analysis_results.append({
@@ -403,7 +370,7 @@ def display_step_progress(step, mode):
     if mode == "single":
         steps = ["1. Composition Fractions", "2. Component Properties", "3. Prediction Results"]
     elif mode == "batch":
-        steps = ["1. Upload Batch File", "2. Prediction Results","3: Sensitivity Analysis"]
+        steps = ["1. Upload Batch File", "2. Prediction Results","3: Blend Analysis"]
     else:
         steps = []
 
@@ -414,13 +381,15 @@ def display_step_progress(step, mode):
                 padding: 0.5rem;
                 border-bottom: 3px solid #ccc;
                 flex-grow: 1;
+                color: #4F4F4F;
             }
             .step.active {
                 font-weight: 700;
-                border-bottom: 3px solid #0072c6;
+                border-bottom: 3px solid #0072c6; /* Blue for active */
+                color: #0072c6;
             }
             .step.completed {
-                border-bottom: 3px solid #28a745;
+                border-bottom: 3px solid #28a745; /* Green for completed */
             }
         </style>
     """, unsafe_allow_html=True)
@@ -440,7 +409,6 @@ def validate_batch_input(df, num_components=5, num_properties=10):
     """
     Validates uploaded batch CSV with more descriptive error messages.
     """
-    # Check if the dataframe is empty first
     if df.empty:
         return False, "The data table is empty. Please ensure data is loaded and not deleted."
 
@@ -456,66 +424,46 @@ def validate_batch_input(df, num_components=5, num_properties=10):
     if extra_cols:
         return False, f"Uploaded CSV has unexpected extra columns: {extra_cols}"
 
-    if df.drop(columns=['ID'], errors='ignore').isnull().any().any():
-        # Find rows and columns with NaN values for a more descriptive error
+    if df. op(columns=['ID'], errors='ignore').isnull().any().any():
         nan_locations = df.drop(columns=['ID'], errors='ignore').isnull()
         problem_rows = df.loc[nan_locations.any(axis=1), 'ID'].tolist()
         return False, f"Uploaded CSV contains missing (NaN) values. Check rows with IDs: {problem_rows[:5]}"
 
     frac_cols = [f"Component{i}_fraction" for i in range(1, num_components + 1)]
-    
-    # Check for negative fractions
+
     if (df[frac_cols] < 0).any().any():
         negative_rows = df.loc[(df[frac_cols] < 0).any(axis=1), 'ID'].tolist()
         return False, f"Component fractions cannot be negative. Check rows with IDs: {negative_rows[:5]}"
 
-    # --- ✨ IMPROVED FRACTION SUM CHECK ✨ ---
     frac_sums = df[frac_cols].sum(axis=1)
     if not np.allclose(frac_sums, 1.0, atol=1e-4):
         bad_rows_indices = np.where(~np.isclose(frac_sums, 1.0, atol=1e-4))[0]
-        
+
         error_messages = []
-        for row_idx in bad_rows_indices[:5]: # Limit to the first 5 errors
-            # Get the ID from the row, or use the index as a fallback
+        for row_idx in bad_rows_indices[:5]:
             row_id = df.iloc[row_idx].get('ID', f"index {row_idx}")
             actual_sum = frac_sums.iloc[row_idx]
             error_messages.append(f"row with ID '{row_id}' sums to {actual_sum:.4f}")
-        
+
         full_error_string = "Component fractions must sum to 1.0. Found issues in: " + "; ".join(error_messages)
         return False, full_error_string
-    # --- END OF IMPROVEMENT ---
 
     return True, "CSV is valid."
-def get_contrasting_text_color(bg_color):
-    """Returns black or white depending on the brightness of the background color"""
-    bg_color = bg_color.lstrip('#')
-    r, g, b = int(bg_color[0:2], 16), int(bg_color[2:4], 16), int(bg_color[4:6], 16)
-
-    # Calculate luminance (ITU-R BT.709)
-    brightness = (0.2126*r + 0.7152*g + 0.0722*b) / 255
-
-    return '#000000' if brightness > 0.6 else '#FFFFFF'
-
-def hex_to_rgba(hex_color, alpha):
-    """Convert hex color to rgba string with specified alpha (opacity)"""
-    hex_color = hex_color.lstrip('#')
-    r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-    return f"rgba({r}, {g}, {b}, {alpha})"
 
 def render_flow_block(title, subtitle, detail, color, icon="💡", width="300px"):
     block_id = f"flow-block-{uuid.uuid4().hex[:8]}"
-    
-    # Color Utilities
+
     def hex_to_rgba(hex_color, alpha=1.0):
         hex_color = hex_color.lstrip('#')
         r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
         return f'rgba({r}, {g}, {b}, {alpha})'
 
-    background_rgba = hex_to_rgba(color, alpha=0.08)      # Translucent bg
-    border_rgba = hex_to_rgba(color, alpha=0.5)           # Border stronger
-    title_color = hex_to_rgba("#FFFFFF", 1.0)
-    subtitle_color = hex_to_rgba("#FFFFFF", 0.75)
-    detail_color = hex_to_rgba("#FFFFFF", 0.5)
+    background_rgba = hex_to_rgba(color, alpha=0.10)
+    border_rgba = hex_to_rgba(color, alpha=0.6)
+    # --- UPDATED TEXT COLORS TO BLUE ---
+    title_color = "#005A9C"      # Dark Blue
+    subtitle_color = "#0072c6"   # Standard Blue
+    detail_color = "#4DA8DA"     # Light Blue
 
     st.markdown(f"""
     <div class="{block_id}">
@@ -539,22 +487,23 @@ def render_flow_block(title, subtitle, detail, color, icon="💡", width="300px"
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         transition: all 0.3s ease-in-out;
         overflow: hidden;
         max-height: 160px;
         position: relative;
-        backdrop-filter: blur(4px);
     }}
 
     .{block_id}:hover {{
         max-height: 320px;
-        filter: brightness(1.05);
+        border-color: {color};
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
     }}
 
     .{block_id} .icon {{
         font-size: 1.8rem;
         margin-bottom: 8px;
+        color: {color};
     }}
 
     .{block_id} .title {{
@@ -593,349 +542,275 @@ def get_gif_base64(gif_path):
 def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
     gif_base64 = get_gif_base64(gif_path)
-    render_flow_block("Input Data","55 features","Contains 55 features per fuel blend: 5 volume fractions representing component percentages, and 50 component properties (10 per each of 5 components). These represent chemical, safety, and environmental attributes from real-world Certificates of Analysis (COA).","#6366F1","🗃️")
-    st.markdown(f"""
-        <div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'>
-            <img src="data:image/gif;base64,{gif_base64}" width="60" />
-        </div>
-    """, unsafe_allow_html=True)
-    render_flow_block("Feature Engineering","BlendWeighted Features","Generates new features by calculating blend-weighted averages of properties, residuals between component and blend values, and statistical summaries to enhance input data. This transforms raw data into more informative features for better model learning.","#6B7280","🛠️")
-    st.markdown(f"""
-        <div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'>
-            <img src="data:image/gif;base64,{gif_base64}" width="60" />
-        </div>
-    """, unsafe_allow_html=True)
-    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])   
+    render_flow_block("Input Data","55 features per blend","5 volume fractions and 50 component properties from real-world Certificates of Analysis (COA), defining chemical, safety, and environmental attributes.","#6366F1","🗃")
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    render_flow_block("Feature Engineering","Creates blend-weighted features","Generates weighted averages, residuals, and statistical summaries to transform raw data into more informative features for better model learning.","#6B7280","🛠")
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     with col1:
-        render_flow_block("LightGBM","Base Model","A high-performance, open-source gradient-boosting framework developed by Microsoft. It uses leaf-wise tree growth and histogram-based algorithms to optimize training speed and memory while maintaining high accuracy, especially for large datasets.","#10B981","🌲",260)
+        render_flow_block("LightGBM","Base Model","A high-performance gradient-boosting framework using leaf-wise tree growth for fast, memory-efficient, and accurate training.","#10B981","🌲",260)
     with col2:
-        render_flow_block("XGBoost","Base Model","An efficient, scalable gradient-boosting algorithm known for speed and accuracy. It builds trees level-wise, includes regularization to prevent overfitting, and supports parallel processing. Widely popular for structured data and competition-winning models.","#EF9F44","🚀",260)
+        render_flow_block("XGBoost","Base Model","An efficient, scalable gradient-boosting algorithm known for speed and accuracy, with built-in regularization to prevent overfitting.","#3B82F6","🚀",260)
     with col3:
-        render_flow_block("CatBoost","Base Model","A gradient boosting method designed to handle categorical and numerical data natively without preprocessing. Uses symmetric trees and ordered target encoding for accuracy and speed, reducing overfitting and preprocessing effort, suitable for diverse datasets.","#F59E0B","🐱",260)
+        render_flow_block("CatBoost","Base Model","A gradient boosting method that natively handles categorical data using symmetric trees, reducing overfitting and preprocessing effort.","#F59E0B","🐱",260)
     with col4:
-        render_flow_block("Neural Net","55 features","A machine learning model inspired by the human brain, consisting of interconnected nodes (neurons) organized in layers. It learns complex patterns from data through weighted connections, enabling tasks like classification, regression, and pattern recognition.","#EC4899","🧠",260)
-    st.markdown(f"""
-        <div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'>
-            <img src="data:image/gif;base64,{gif_base64}" width="60" />
-        </div>
-    """, unsafe_allow_html=True)
-    render_flow_block("Meta Model","RidgeCV Ensemble","The Meta Model uses RidgeCV to linearly combine base model predictions, finding the best regularization to reduce overfitting. It learns optimal weights to stack outputs into a single, robust final prediction for each property, improving accuracy and generalization.","#DC2626","🧰")
-    st.markdown(f"""
-        <div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'>
-            <img src="data:image/gif;base64,{gif_base64}" width="60" />
-        </div>
-    """, unsafe_allow_html=True)
-    col1, col2 = st.columns([1, 1])   
+        render_flow_block("Neural Net","Base Model","A model inspired by the human brain, consisting of layered nodes that learn complex patterns and non-linear relationships from data.","#EC4899","🧠",260)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    render_flow_block("Meta Model","RidgeCV Ensemble","Linearly combines base model predictions, using RidgeCV to find the best regularization strength and learn optimal weights for a robust final prediction.","#DC2626","🧰")
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns([1, 1])
     with col1:
-        render_flow_block("Calibration","Isotonic Regression & Probability Calibration","Calibration uses Isotonic Regression to adjust ensemble predictions, reducing bias and aligning outputs closer to observed data. This non-parametric method improves reliability and accuracy, ensuring predictions are realistic and generalize well to new data.","#38BDF8","📈",480)
+        render_flow_block("Calibration","Isotonic Regression","Adjusts ensemble predictions using non-parametric Isotonic Regression, reducing systematic bias and aligning outputs closer to observed data for improved reliability.","#38BDF8","📈",480)
     with col2:
-        render_flow_block("Final Output","10 Blend Properties with Optimized Prediction","The Final Output combines calibrated predictions with baseline weighted averages to produce accurate estimates for 10 blend properties per sample. This optimized blending reduces errors, delivering reliable and actionable results for fuel blend optimization.","#14B8A6","🎯",480)
-def render_online_status():
-    st.markdown('''
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="width:10px;height:10px;background:#22c55e;border-radius:50%;animation:pulse 2s infinite ease-in-out;"></div>
-        <div style="color:#a3f0c1;font-size:0.9em;">
-            <strong style="color:#22c55e;">Online</strong> – System Ready
-        </div>
-    </div>
-    <style>
-    @keyframes pulse {
-        0%, 100% {transform: scale(1); opacity: 1;}
-        50% {transform: scale(1.6); opacity: 0.5;}
-    }
-    </style>
-    ''', unsafe_allow_html=True)
+        render_flow_block("Final Output","10 Optimized Predictions","Combines calibrated predictions with baseline weighted averages to produce accurate, reliable, and actionable estimates for 10 key blend properties.","#14B8A6","🎯",480)
 
-# Wrap run_sensitivity_analysis with arguments
 def worker(args):
     prop, row_data, assets, component_to_vary = args
     return prop, run_sensitivity_analysis(row_data, assets, prop, component_to_vary)
 
-
-# ✅ Lottie loading function
 def load_lottieurl(url: str):
     r = requests.get(url)
     if r.status_code != 200:
         return None
-    return r.json()       
+    return r.json()
+
 # --- 3. Main Application ---
 def main():
-    # --- This is the ONLY place set_page_config should be called ---
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
     st_javascript("window.scrollTo(0, 0);")
-    # --- Load assets at the top so they are available to all steps ---
+
+    # --- ✨ NEW: Patched Gradient Background Theme ---
+    st.markdown("""
+    <style>
+        /* Main app background with vibrant gradient patches on top & strong white fade on bottom center */
+        .stApp {
+            background-color: #FFFFFF; /* Pure white base */
+            background-image:
+                /* Color patches are kept in the top half */
+                radial-gradient(at 10% 20%, hsla(340, 100%, 75%, 0.85) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, hsla(200, 100%, 75%, 0.85) 0px, transparent 50%),
+                radial-gradient(at 75% 30%, hsla(50, 100%, 75%, 0.75) 0px, transparent 50%),
+                radial-gradient(at 25% 35%, hsla(210, 100%, 80%, 0.75) 0px, transparent 50%),
+
+                /* KEY CHANGE: This gradient now makes the bottom ~60% of the page white */
+                linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,1) 60%);
+                
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            color: #1A1A1A; /* Darker neutral text */
+        }
+
+        /* Transparent header & blurred sidebar */
+        [data-testid="stHeader"] {
+            background: transparent;
+        }
+        [data-testid="stSidebar"] {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        /* Popovers and menus stay solid white */
+        div[data-baseweb="popover"], div[data-baseweb="menu"] > ul {
+            background-color: #FFFFFF !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     assets = load_assets()
     if assets is None:
-        st.stop() # Stop the app if models can't be loaded
+        st.stop()
 
-    # Initialize session state for multi-step navigation
     if 'step' not in st.session_state:
         st.session_state.step = 0
+# --- Step 0: Landing Page ---
     if st.session_state.step == 0:
         st.markdown("""
             <style>
-                .stApp {
-                    background: transparent !important;
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+                html, body, [class*="css"] {
+                    font-family: 'Inter', sans-serif;
                 }
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Orbitron:wght@500;700&display=swap');
-
-                .stApp {
-                    background: radial-gradient(ellipse at bottom, #0d1117 0%, #000000 80%),
-                                url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1920&q=80');
-                    background-size: cover;
-                    background-attachment: fixed;
-                    background-position: center;
-                }
-
-                /* Background: sci-fi gradient + faint moving stars */
-                body::before {
-                    content: '';
-                    position: fixed;
-                    inset: 0;
-                    background: url('https://www.transparenttextures.com/patterns/stardust.png') repeat;
-                    background-size: 300px 300px;
-                    background-position: var(--star-offset-x, 0px) var(--star-offset-y, 0px);
-                    opacity: 0.15;
-                    z-index: -2;
-                    pointer-events: none;
-                    will-change: background-position;
-                }
-
-                body::after {
-                    content: '';
-                    position: fixed;
-                    top: 0; left: 0;
-                    width: 100%; height: 100%;
-                    background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-                    opacity: 0.15;
-                    animation: starDrift 60s linear infinite;
-                    z-index: -1;
-                }
-                @keyframes starDrift {
-                    from { background-position: 0 0; }
-                    to { background-position: 1000px 1000px; }
-                }
-
-                /* Hidden gate */
-                .hidden-until-ready {
-                    opacity: 0;
-                    pointer-events: none;
-                    transition: opacity 0.8s ease;
-                }
-                .hidden-until-ready.ready {
-                    opacity: 1;
-                    pointer-events: auto;
-                }
-
-                /* Sci-fi glow animation */
-                @keyframes zoomGlow {
-                    0% {
-                        transform: scale(1.8);
-                        opacity: 0;
-                        text-shadow: none;
-                    }
-                    50% {
-                        transform: scale(1.8);
-                        opacity: 1;
-                        text-shadow: 0 0 35px rgba(0,255,180,0.7), 0 0 70px rgba(0,180,255,0.4);
-                    }
-                    100% {
-                        transform: scale(1);
-                        opacity: 1;
-                        text-shadow: 0 0 12px rgba(0,255,180,0.4);
-                    }
-                }
-
-                /* Logo text */
-                #text-logo {
-                    font-family: 'Orbitron', sans-serif;
-                    background: linear-gradient(135deg, #00FFB4, #00A8FF, #C0FFD0);
-                    -webkit-background-clip: text;
-                    background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    font-size: 4.8em;
+                .big-title {
+                    font-size: 3.8em;
                     font-weight: 900;
-                    letter-spacing: 2px;
-                    opacity: 0;
-                }
-                #text-logo.animate {
-                    animation: zoomGlow 2.6s forwards cubic-bezier(0.16, 1, 0.3, 1);
-                }
-                /* Fade-in elements */
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                .hero-subtitle, .hero-tagline, .scroll-button-wrapper {
-                    opacity: 0;
-                    animation: fadeIn 1.5s forwards;
-                }
-                .hero-subtitle {
-                    animation-delay: 2.6s;
-                    font-size: 1.25em;
-                    color: #7ACCBF;
-                }
-                .hero-tagline {
-                    animation-delay: 3.0s;
-                    font-size: 1.4em;
-                    font-weight: 600;
-                    margin-top: 1.5em;
-                    color: #A8F5E2;
-                }
-                .hero-tagline .highlight {
-                    color: #00FFB4;
-                }
-                .scroll-button-wrapper {
-                    animation-delay: 3.4s;
-                    margin-top: 2.5em;
-                }
-                .dark-container {
-                    background: rgba(0, 0, 0, 0.4); /* Semi-transparent dark */
-                    border-radius: 16px;
-                    padding: 2em;
-                    margin: 2em auto;
-                    max-width: 1200px;
-                    box-shadow: 0 0 30px rgba(0, 255, 180, 0.15);
-                }
-
-                #scroll-button {
-                    background: transparent;
-                    border: 2px solid #00FFB4;
-                    color: #00FFB4;
-                    padding: 10px 22px;
-                    font-size: 1em;
-                    font-weight: 700;
-                    border-radius: 50px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 0 12px rgba(0,255,180,0.3);
-                }
-                #scroll-button:hover {
-                    background-color: #00FFB4;
-                    color: #05070D;
-                    box-shadow: 0 0 20px rgba(0,255,180,0.6);
-                }
-
-                .section-header {
                     text-align: center;
-                    font-size: 2.2em;
+                    background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);
+                    background-size: 200% auto;
+                    color: #000;
+                    background-clip: text;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: shine 4s linear infinite;
+                }
+                @keyframes shine {
+                    to {
+                        background-position: 200% center;
+                    }
+                }
+                .subtitle { font-size: 1.25em; color: #005A9C; text-align: center; margin-bottom: 2em; }
+                .section-header { text-align: center; font-size: 2.2em; font-weight: 700; margin-top: 2em; margin-bottom: 1em; color: #005A9C; }
+
+                /* --- UPDATED BUTTON STYLE --- */
+                div[data-testid="stButton"] > button {
+                    font-size: 1.2em;
                     font-weight: 700;
-                    margin-top: 2em;
-                    margin-bottom: 1em;
-                    color: #D0F5E9;
-                    text-shadow: 0 0 15px rgba(0,255,180,0.4);
+                    padding: 0.8em 1em;
+                    border-radius: 8px;
+                    background-image: linear-gradient(45deg, #ff9a8b, #87ceeb);
+                    color: white;
+                    border: none;
+                    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                }
+                div[data-testid="stButton"] > button:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 8px 30px rgba(135, 206, 235, 0.5);
+                }
+
+                .logo-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 1rem 0;
+                    margin-bottom: -1rem;
+                    perspective: 800px;
+                }
+                #interactive-logo-img {
+                    max-width: 250px;
+                    cursor: pointer;
+                    filter: none;
+                    transform: scale(1);
+                    transition: transform 0.4s ease-out, filter 0.4s ease-out;
+                }
+                .logo-container:hover #interactive-logo-img {
+                    filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
+                            drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
+                    transform: scale(1.1);
+                    transition: transform 0.05s linear, filter 0.4s ease-out;
                 }
             </style>
-            <script>
-            document.addEventListener('scroll', () => {
-                const scrollY = window.scrollY;
-                // Parallax effect — smaller movement than scroll amount
-                const offsetX = scrollY * 0.05;
-                const offsetY = scrollY * 0.1;
-                document.body.style.setProperty('--star-offset-x', `${offsetX}px`);
-                document.body.style.setProperty('--star-offset-y', `${offsetY}px`);
-            });
-            </script>
-        """, unsafe_allow_html=True)
-        # Hero section
-        st.markdown("""
-            <div class="hero-container" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
-                <h1 id="text-logo">Shell.ai Fuel Blend Challenge</h1>
-                <p class="hero-subtitle">Nature-inspired, AI-driven fuel innovation</p>
-                <p class="hero-tagline">Blending <span class="highlight">machine intelligence</span> with <span class="highlight">planet-first design</span>.</p>
-                <div class="scroll-button-wrapper">
-                    <button id="scroll-button">Explore ↓</button>
-                </div>
+            """, unsafe_allow_html=True)
+        # --- Page Content ---
+        with st.container():
+            try:
+                logo_path = "images/unnamed-removebg-preview.png"
+                logo_base64 = image_to_base64(logo_path)
+
+                _ , col2, _ = st.columns([1, 1, 1])
+                with col2:
+                    st.markdown(f"""
+                    <div class="logo-container">
+                        <img id="interactive-logo-img" src="data:image/png;base64,{logo_base64}">
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            except FileNotFoundError:
+                _ , col2, _ = st.columns([1, 1, 1])
+                with col2:
+                    st.error("⚠ Logo image not found.")
+
+            st.markdown('<div class="big-title">Shell.ai Fuel Blend Hackathon</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subtitle">Reimagining sustainable energy with AI-powered fuel property prediction.</div>', unsafe_allow_html=True)
+
+            st.markdown("""
+            <div style="text-align:center; max-width:850px; margin:auto; padding-top: 1.5em;">
+                <p style="font-size: 1.35em; font-weight: 700; color: #005A9C; margin-bottom: 0.6em;">
+                    In a world chasing <span style="color:#28a745;">net-zero</span>, fuel is no longer just a commodity — it's a <span style="color:#0072c6;">climate lever</span>.
+                </p>
             </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        st.markdown('<div id="main-content" class="hidden-until-ready">', unsafe_allow_html=True)
+            lottie_url = "https://assets9.lottiefiles.com/packages/lf20_vgiqdeca.json"
+            lottie_json = load_lottieurl(lottie_url)
+            if lottie_json:
+                st_lottie(lottie_json, height=280, speed=1, quality="high")
 
-        # Rest of your sections
-        lottie_url = "https://assets9.lottiefiles.com/packages/lf20_vgiqdeca.json"
-        lottie_json = load_lottieurl(lottie_url)
-        if lottie_json:
-            st_lottie(lottie_json, height=300, speed=1, quality="high")
+            # --- NEW: Team Details Section ---
+            st.markdown('<div class="section-header">Meet the Team</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div style="text-align:center; margin-bottom: 3em;">
+                <h3 style="font-weight: 700; color: #0072c6;">Team Locus</h3>
+                <p style="color: #005A9C; font-size: 1.1em; font-weight: 500;">
+                    Abhinav Tyagi &nbsp; • &nbsp; Shivang Sharma &nbsp; • &nbsp; Siddharth Bansal &nbsp; • &nbsp; Utkarsh Singh
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            render_flow_block(
-                "Quantum-Calibrated Predictions",
-                "Confidence-tuned ensemble outputs.",
-                "Our models are calibrated with quantum-inspired optimization for precision and trust.",
-                "#00FFB4", "📈", "95%"
-            )
-        with col2:
-            render_flow_block(
-                "Bio-Inspired Feature Engineering",
-                "Derives signals from nature's patterns.",
-                "Hundreds of engineered features mimic natural optimization systems.",
-                "#00A8FF", "🧬", "95%"
-            )
-        with col3:
-            render_flow_block(
-                "Stacked AI Models",
-                "Multiple minds, one decision.",
-                "Meta-learning architecture synthesizes strengths of specialized models.",
-                "#7ACCBF", "🤖", "95%"
-            )
-        st.markdown('<div class="section-header">The Power Core</div>', unsafe_allow_html=True)
-        render_flow_diagram()
+            st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                render_flow_block("Calibrated Predictions", "Confidence-tuned ensemble outputs.", "Our models are calibrated to provide not just predictions, but a reliable measure of confidence, ensuring trustworthy results.", "#2ECC71", "📈",200)
+            with col2:
+                render_flow_block("Feature Engineering", "Creates derived features & weights.", "Automated creation of hundreds of insightful features that capture complex interactions between components.", "#3B82F6", "🧮",200)
+            with col3:
+                render_flow_block("Model Stacking", "Combines strengths of multiple learners.", "We use a meta-learning approach, where a final model learns to optimally weigh the predictions from our base models.", "#6B7280", "🛠",200)
 
-        st.markdown("""
+            st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
+            render_flow_diagram()
+
+            st.markdown("""
             <div style="text-align:center; padding:2em 0; margin-top:2em;">
-                <h2 style="color:#00FFB4;">Ready to Predict the Future of Fuel?</h2>
-                <p style="color:#7ACCBF;">Step into our AI-powered bio-digital lab for sustainable fuel blends.</p>
+                <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
+                <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
             </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            if st.button("🚀 Launch Prediction Tool", use_container_width=True):
+                st.session_state.step = 1
+                st.rerun()
 
-        if st.button("🚀 Launch Prediction Tool", use_container_width=True):
-            st.session_state.step = 1
-            st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Reveal after animation
         st.markdown("""
-            <script>
-            const gate = document.getElementById('main-content');
-            const scrollButton = document.getElementById('scroll-button');
-            const title = document.getElementById('text-logo');
+        <script>
+            function attachLogoAnimation() {
+                const logo = document.getElementById('interactive-logo-img');
+                const container = document.querySelector('.logo-container');
 
-            if (title && gate) {
-                title.classList.add('animate');
-                title.addEventListener('animationend', (e) => {
-                    if (e.animationName === 'zoomGlow') {
-                        gate.classList.add('ready');
-                    }
-                });
-            }
-            if (scrollButton && gate) {
-                scrollButton.onclick = function() {
-                    gate.scrollIntoView({ behavior: 'smooth' });
+                if (logo && container) {
+                    clearInterval(checkInterval);
+
+                    const maxRotation = 20;
+                    container.addEventListener('mousemove', (e) => {
+                        const rect = container.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const deltaX = x - centerX;
+                        const deltaY = y - centerY;
+
+                        const rotateY = (deltaX / centerX) * maxRotation;
+                        const rotateX = -(deltaY / centerY) * maxRotation;
+
+                        logo.style.transform = rotateX(${rotateX}deg) rotateY(${rotateY}deg);
+                    });
+
+                    container.addEventListener('mouseleave', () => {
+                        logo.style.transform = 'rotateX(0) rotateY(0)';
+                    });
                 }
             }
-            </script>
+            const checkInterval = setInterval(attachLogoAnimation, 100);
+        </script>
         """, unsafe_allow_html=True)
         return
 
-# --- ✨ Display the progress bar on all subsequent steps ---
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV
     if st.session_state.step == 1:
         st.header("Step 1: Upload Batch File")
 
-        # --- File Upload Logic (no changes here) ---
         col1, col2 = st.columns([3, 1])
         with col1:
             uploaded_file = st.file_uploader("Upload your CSV file:", type=["csv"])
-            # --- ADD THIS SNIPPET ---
             with st.expander("❓ Not sure about the file format?"):
                     st.info(
                         "The CSV should contain an 'ID' column, 5 'ComponentX_fraction' columns, "
                         "and 50 'ComponentX_PropertyY' columns. The component fractions for each row must sum to 1.0."
                     )
-                    st.markdown("Click the **Load Example Data** button to see a working example.")
-            # --- END SNIPPET ---
+                    st.markdown("Click the Load Example Data button to see a working example.")
         with col2:
             st.markdown("</br>", unsafe_allow_html=True)
             if st.button("Load Example Data", use_container_width=True):
@@ -946,63 +821,53 @@ def main():
                 except FileNotFoundError:
                     st.error("Could not find 'datasets/test.csv'.")
 
-        df_to_process = None # Use a new variable name for clarity
+        df_to_process = None
         if uploaded_file:
             df_to_process = pd.read_csv(uploaded_file)
         elif "batch_input_df" in st.session_state:
             df_to_process = st.session_state.batch_input_df
 
         if df_to_process is not None:
-            
             st.info("📝 Review your data below. The graphs will check for issues.")
             edited_df = st.data_editor(df_to_process, use_container_width=True, num_rows="dynamic", key="editable_csv")
 
-            # --- ✨ NEW: Workaround for the data editor bug ---
-            # If the editor returns an empty table, fall back to the original data.
             if edited_df.empty:
-                st.warning("⚠️ The data editor returned an empty table. Reverting to the original data.", icon="🤖")
+                st.warning("⚠ The data editor returned an empty table. Reverting to the original data.", icon="🤖")
                 final_df = df_to_process
             else:
                 final_df = edited_df
 
             st.session_state.batch_input_df = final_df
 
-            # --- File Health Analysis Section ---
-            st.subheader("🕵️ File Health Analysis")
+            st.subheader("🕵 File Health Analysis")
             col1, col2 = st.columns(2)
             with col1:
                 st.plotly_chart(plot_missing_matrix(final_df), use_container_width=True)
-                st.caption("💡 **COACH'S TIP:** This matrix shows where data is missing (red spots). "
-                            "A fully green chart means your data is complete and healthy!")
+                st.caption("💡 COACH'S TIP: This matrix shows where data is missing (red spots). "
+                           "A fully green chart means your data is complete and healthy!")
             with col2:
                 st.plotly_chart(plot_fraction_sums(final_df), use_container_width=True)
-                st.caption("⚖️ **VALIDATION:** This chart checks if your fractions add up to 1.0. "
-                            "Any red bars indicate rows that need to be fixed in the editor above.")
-            
+                st.caption("⚖ VALIDATION: This chart checks if your fractions add up to 1.0. "
+                           "Any red bars indicate rows that need to be fixed in the editor above.")
+
             st.markdown("---")
 
-            # --- Final validation now uses the corrected dataframe and function ---
             is_valid, msg = validate_batch_input(final_df)
             if not is_valid:
-                st.error(f"❌ **Validation Failed:** {msg}")
+                st.error(f"❌ Validation Failed: {msg}")
             else:
-                st.success("✅ **Validation Passed:** Your data looks good! You can now proceed to prediction.")
-            col1,col2 = st.columns(2)
-            with col1:
-                if st.button("⬅️ Introduction", use_container_width=True, disabled=not is_valid):
-                    st.session_state.step = 0
-                    st.rerun()
-            with col2:
-                if st.button("➡️ Predict", use_container_width=True, disabled=not is_valid):
-                    st.session_state.step = 2
-                    st.rerun()
+                st.success("✅ Validation Passed: Your data looks good! You can now proceed to prediction.")
+
+            if st.button("➡ Predict", use_container_width=True, disabled=not is_valid):
+                st.session_state.step = 2
+                st.rerun()
     # STEP 2: Predict
     elif st.session_state.step == 2:
         st.header("Step 2: Prediction Results")
-        
+
         if "batch_input_df" not in st.session_state:
-            st.warning("⚠️ No batch file uploaded.")
-            if st.button("⬅️ Back to Upload"):
+            st.warning("⚠ No batch file uploaded.")
+            if st.button("⬅ Back to Upload"):
                 st.session_state.step = 1
                 st.rerun()
         else:
@@ -1011,86 +876,54 @@ def main():
                 try:
                     predictions = predict_properties(df, assets)
                     pred_df = pd.DataFrame(predictions, columns=[f"BlendProperty{i}" for i in range(1, 11)])
-                    # This is the full DataFrame with all columns
                     final_df = pd.concat([df.reset_index(drop=True), pred_df], axis=1)
-
                     st.session_state.final_prediction_df = final_df
 
                     st.subheader("📊 Prediction Results")
-                    
-                    # --- This part creates the filtered view for the screen ---
+
                     cols_to_display = ["ID"] + [f"BlendProperty{i}" for i in range(1, 11)]
                     st.dataframe(final_df[cols_to_display].style.format("{:.4f}"), use_container_width=True)
-
                     st.markdown("---")
-                    
-                    # --- ✨ NEW: Column Selection for Download ✨ ---
-                    st.subheader("⬇️ Download Custom CSV")
-                    
-                    # Get the list of all available columns from the full results
-                    all_columns = final_df.columns.tolist()
-                    
-                    # Define the default columns to select (ID + predictions)
-                    default_columns = ["ID"] + [f"BlendProperty{i}" for i in range(1, 11)]
-                    
-                    # Create a multiselect widget for the user to choose columns
-                    selected_columns = st.multiselect(
-                        "Select columns to include in your download:",
-                        options=all_columns,
-                        default=all_columns # Default to a clean selection
+
+                    # --- SIMPLIFIED DOWNLOAD BUTTON ---
+                    csv_to_download = final_df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                       label="📥 Download Full Results CSV",
+                       data=csv_to_download,
+                       file_name="blend_predictions_output.csv",
+                       mime="text/csv",
+                       use_container_width=True,
+                       key="download_full_csv"
                     )
-
-                    if selected_columns:
-                        # Filter the DataFrame based on the user's column selection
-                        df_to_download = final_df[selected_columns]
-                        
-                        # Convert the selected data to CSV
-                        csv_selected = df_to_download.to_csv(index=False).encode('utf-8')
-                        
-                        # Create a download button specifically for the selected columns
-                        st.download_button(
-                            label=f"Download Selected ({len(selected_columns)} columns)",
-                            data=csv_selected,
-                            file_name="custom_blend_predictions.csv",
-                            mime="text/csv",
-                            key="download_custom"
-                        )
-                    else:
-                        st.info("Select one or more columns to enable the download button.")
-                    
-                    # --- End of New Section ---
-
                     st.markdown("---")
+
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("⬅️ Upload Batch File", use_container_width=True):
+                        if st.button("⬅ Upload Another File", use_container_width=True):
                             for key in ["batch_input_df", "final_prediction_df"]:
                                 st.session_state.pop(key, None)
                             st.session_state.step = 1
                             st.rerun()
                     with col2:
-                        if st.button("➡️ Analysis",use_container_width=True):
+                        if st.button("➡ Go to Analysis",use_container_width=True):
                             st.session_state.step = 3
                             st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error during prediction: {e}")
 
-
-    # STEP 3: Row-Level Analysis
+    # STEP 3: Blend-Level Analysis
     elif st.session_state.step == 3:
         st.header("Step 3: Blend Analysis & Explainability")
-        
-        # Check if prediction data exists, otherwise send user back
+
         if "final_prediction_df" not in st.session_state:
-            st.warning("⚠️ No prediction data available. Please go back to Step 2.")
-            if st.button("⬅️ Back to Prediction Results"):
+            st.warning("⚠ No prediction data available. Please go back to Step 2.")
+            if st.button("⬅ Back to Prediction Results"):
                 st.session_state.step = 2
                 st.rerun()
             return
-            
+
         df = st.session_state.final_prediction_df
 
-        # --- Section 1: Overall Dataset Analysis ---
         st.markdown(f"<h2>📊 Overall Dataset Analysis</h2>", unsafe_allow_html=True)
         st.markdown(
             "This shows how component fractions are distributed across the entire uploaded batch, "
@@ -1104,106 +937,105 @@ def main():
             melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
             fig_box = px.box(
                 melted_frac, x="Component", y="Fraction", points="all", color="Component",
-                title="📦 Distribution of Component Fractions Across All Uploaded Blends"
+                title="📦 Distribution of Component Fractions Across All Uploaded Blends",
+                template="plotly_white"
             )
             fig_box.update_layout(
-                height=400, paper_bgcolor='rgba(14, 17, 23, 1)',
-                plot_bgcolor='rgba(14, 17, 23, 1)', font=dict(color="#EAEAEA"),
+                height=400,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
                 showlegend=False
             )
             st.plotly_chart(fig_box, use_container_width=True)
-        
+
         st.markdown("---")
 
-        # --- Section 2: Single Row Deep Dive ---
         st.markdown(f"<h2>🔬 Single Blend Deep Dive</h2>", unsafe_allow_html=True)
         st.markdown("Select a single blend from your data to inspect its composition, understand its prediction, and run 'what-if' scenarios.")
 
         selected_id = st.selectbox("Select a Blend ID to analyze:", df["ID"].unique())
         row_data = df[df["ID"] == selected_id]
-        
+
         st.subheader("📋 Selected Row Composition")
         st.dataframe(row_data, use_container_width=True, height=80)
-        # Radar Chart for Component Fractions
+
+        # --- Side-By-Side Radar Charts with Alignment ---
+        st.subheader("📡 Blend Composition Radars")
+
+        # --- CONTROLS MOVED ABOVE COLUMNS FOR ALIGNMENT ---
+        comp_to_show = st.selectbox(
+            "Select Component to View Properties (for Right Chart):",
+            options=[1, 2, 3, 4, 5],
+            format_func=lambda x: f"Component {x}",
+            key="prop_radar_selector"
+        )
+
         col1, col2 = st.columns(2)
-
-        # Shared component list
-        components = [f"Component{i}_fraction" for i in range(1, 6)]
-
-        # First radar: Original fractions
         with col1:
-            fractions = [row_data.iloc[0][comp] for comp in components]
-            fig_radar = go.Figure()
-            fig_radar.add_trace(go.Scatterpolar(
+            # Radar Chart 1: Component Fractions
+            components = [f"Component {i}" for i in range(1, 6)]
+            frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
+            fractions = [row_data.iloc[0][comp] for comp in frac_cols]
+
+            fig_radar_frac = go.Figure()
+            fig_radar_frac.add_trace(go.Scatterpolar(
                 r=fractions + fractions[:1],
                 theta=components + [components[0]],
-                mode='lines',
-                fill='toself',
-                name='Original Fractions',
-                line=dict(color="#3498db"),
-                fillcolor='rgba(52, 152, 219, 0.4)'
+                mode='lines', fill='toself', name='Fractions',
+                line=dict(color="#0072c6"), # Blue
+                fillcolor='rgba(0, 114, 198, 0.4)'
             ))
-            fig_radar.update_layout(
+            fig_radar_frac.update_layout(
                 polar=dict(
-                    radialaxis=dict(visible=True, range=[0, 1], gridcolor='#444654'),
+                    radialaxis=dict(visible=True, range=[0, 1], gridcolor='#DDDDDD'),
                     angularaxis=dict(tickfont=dict(size=12), rotation=90),
-                    bgcolor='rgba(14, 17, 23, 1)'
+                    bgcolor='rgba(255, 255, 255, 0.5)'
                 ),
-                paper_bgcolor='rgba(14, 17, 23, 1)',
-                plot_bgcolor='rgba(14, 17, 23, 1)',
-                font=dict(color="#EAEAEA"),
-                showlegend=False,
-                height=400,
-                title=dict(text="Original Component Fractions")
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#000000"), showlegend=False, height=400,
+                title=dict(text="Component Fractions")
             )
-            st.plotly_chart(fig_radar, use_container_width=True)
+            st.plotly_chart(fig_radar_frac, use_container_width=True)
+
         with col2:
-            properties = [f"BlendProperty{i}" for i in range(1, 11)]
-            fractions_modified = [row_data.iloc[0][prop] for prop in properties]
+            # Radar Chart 2: Component Properties
+            prop_labels = [f"Prop {i}" for i in range(1, 11)]
+            prop_cols = [f"Component{comp_to_show}_Property{i}" for i in range(1, 11)]
+            prop_values = row_data.iloc[0][prop_cols].values.tolist()
 
-            # Calculate the range dynamically
-            max_val = max(fractions_modified)
-            radial_range = [0, max_val + .1]
-
-            fig_radar_modified = go.Figure()
-            fig_radar_modified.add_trace(go.Scatterpolar(
-                r=fractions_modified + fractions_modified[:1],
-                theta=properties + [properties[0]],
-                mode='lines',
-                fill='toself',
-                name='Modified Fractions',
-                line=dict(color="#e67e22"),
-                fillcolor='rgba(230, 126, 34, 0.4)'
+            fig_radar_props = go.Figure()
+            fig_radar_props.add_trace(go.Scatterpolar(
+                r=prop_values + prop_values[:1],
+                theta=prop_labels + [prop_labels[0]],
+                mode='lines', fill='toself', name='Properties',
+                line=dict(color="#28a745"), # Green
+                fillcolor='rgba(40, 167, 69, 0.4)'
             ))
-            fig_radar_modified.update_layout(
+            fig_radar_props.update_layout(
                 polar=dict(
-                    radialaxis=dict(visible=True, range=radial_range, gridcolor='#444654'),
-                    angularaxis=dict(tickfont=dict(size=12), rotation=90),
-                    bgcolor='rgba(14, 17, 23, 1)'
+                    radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
+                    angularaxis=dict(tickfont=dict(size=12)),
+                    bgcolor='rgba(255, 255, 255, 0.5)'
                 ),
-                paper_bgcolor='rgba(14, 17, 23, 1)',
-                plot_bgcolor='rgba(14, 17, 23, 1)',
-                font=dict(color="#EAEAEA"),
-                showlegend=False,
-                height=400,
-                title=dict(text="Modified Component Fractions")
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#000000"), showlegend=False, height=400,
+                title=dict(text=f"Properties for Component {comp_to_show}")
             )
-            st.plotly_chart(fig_radar_modified, use_container_width=True)
+            st.plotly_chart(fig_radar_props, use_container_width=True)
 
+        st.markdown("<br>", unsafe_allow_html=True) # Add some space
+        # --- End of radar section ---
 
-
-        # --- Replace your existing SHAP section with this ---
         st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
         with st.expander("How does this work?"):
             st.info(
-            "This section explains *why* the model made its prediction. Choose a property and a plot type to see "
+            "This section explains why the model made its prediction. Choose a property and a plot type to see "
             "which features had the biggest impact."
             )
-        # Create columns for the selectors
         col1, col2 = st.columns(2)
         with col1:
             property_to_explain = st.selectbox(
-                "Select a Blend Property to explain:", 
+                "Select a Blend Property to explain:",
                 [f"BlendProperty{i}" for i in range(1, 11)],
                 key="shap_property_selector"
             )
@@ -1214,7 +1046,6 @@ def main():
                 key="shap_plot_selector"
             )
 
-        # Call the correct function based on user's choice
         if property_to_explain:
             with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
                 if plot_type == "Waterfall":
@@ -1223,26 +1054,23 @@ def main():
                     generate_shap_decision_plot(row_data, property_to_explain, assets)
                 elif plot_type == "Force Plot":
                     generate_shap_force_plot(row_data, property_to_explain, assets)
-        # --- End of updated SHAP section ---
 
-        # --- Sensitivity Analysis Section ---
         st.markdown("<h3>🔬 Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
-        
         with st.expander("How does this work?"):
             st.info(
                 """
-                This tool helps you play 'what-if'. Select a component to vary its fraction from 0% to 100%. 
+                This tool helps you play 'what-if'. Select a component to vary its fraction from 0% to 100%.
                 The model then re-calculates all 10 blend properties at each step, showing you how sensitive they are to changes in that single component.
                 """
             )
 
         component_to_vary = st.selectbox("Select Component to Vary", [1, 2, 3, 4, 5], format_func=lambda x: f"Component {x}")
-        
+
         if st.button("Run Sensitivity Analysis", use_container_width=True):
             blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
             tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
-            progress_bar = st.progress(10, text="🚀 Launching parallel prediction threads...")
-            
+            progress_bar = st.progress(0, text="🚀 Launching parallel prediction threads...")
+
             results = []
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = {executor.submit(worker, args): i for i, args in enumerate(tasks)}
@@ -1250,7 +1078,7 @@ def main():
                     prop, analysis_df = future.result()
                     results.append((prop, analysis_df))
                     progress_bar.progress((i + 1) / len(tasks), text=f"✅ Completed {prop}...")
-            
+
             progress_bar.empty()
 
             fig_sensitivity = go.Figure()
@@ -1264,13 +1092,10 @@ def main():
             fig_sensitivity.update_layout(
                 title=f"Sensitivity Analysis: Varying Component {component_to_vary}",
                 xaxis_title=f"Fraction of Component {component_to_vary}",
-                yaxis_title="Predicted Value", template="plotly_dark", height=600
+                yaxis_title="Predicted Value", template="plotly_white", height=600,
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig_sensitivity, use_container_width=True)
-        if st.button("⬅️ Prediction", use_container_width=True):
-            st.session_state.step = 0
-            st.rerun()
 
-                
 if __name__ == "__main__":
     main()

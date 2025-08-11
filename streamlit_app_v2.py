@@ -327,6 +327,7 @@ def image_to_base64(path):
     """Converts a local image file to a base64 string."""
     with open(path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode()
+    
 def plot_missing_matrix(df):
     mask = df.isnull().astype(int)
 
@@ -785,16 +786,34 @@ def main():
                 st_lottie(lottie_json, height=280, speed=1, quality="high")
 
             # --- NEW: Team Details Section ---
-            st.markdown('<div class="section-header">Meet the Team</div>', unsafe_allow_html=True)
             st.markdown("""
-            <div style="text-align:center; margin-bottom: 3em;">
-                <h3 style="font-weight: 700; color: #0072c6;">Team Locus</h3>
-                <p style="color: #005A9C; font-size: 1.1em; font-weight: 500;">
-                    Abhinav Tyagi &nbsp; • &nbsp; Shivang Sharma &nbsp; • &nbsp; Siddharth Bansal &nbsp; • &nbsp; Utkarsh Singh
-                </p>
+            <div style="
+                margin: 2em auto; 
+                max-width: 600px; 
+                padding: 2em 3em; 
+                border-radius: 15px;
+                background: linear-gradient(135deg, rgba(135,206,250,0.3), rgba(255,182,193,0.3));
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 182, 193, 0.3);
+                text-align: center;
+                color: #005A9C;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">
+                <h3 style="font-weight: 700; font-size: 2.2em; margin-bottom: 0.5em; color: #0072c6;">Team Locus</h3>
+                <div style="display: flex; justify-content: center; gap: 6em; font-size: 1.5em; font-weight: 600;">
+                    <div style="text-align: left;">
+                        <p style="margin: 0.3em 0;">Abhinav Tyagi</p>
+                        <p style="margin: 0.3em 0;">Siddharth Bansal</p>
+                    </div>
+                    <div style="text-align: left;">
+                        <p style="margin: 0.3em 0;">Shivang Sharma</p>
+                        <p style="margin: 0.3em 0;">Utkarsh Singh</p>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
-
 
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
@@ -861,14 +880,22 @@ def main():
         col1, col2 = st.columns([3, 1])
         with col1:
             uploaded_file = st.file_uploader("Upload your CSV file:", type=["csv"])
-            with st.expander("❓ Not sure about the file format?"):
-                    st.info(
-                        "The CSV should contain an 'ID' column, 5 'ComponentX_fraction' columns, "
-                        "and 50 'ComponentX_PropertyY' columns. The component fractions for each row must sum to 1.0."
-                    )
-                    st.markdown("Click the Load Example Data button to see a working example.")
+            st.markdown(
+            """
+            **Your CSV file must have:**
+            - An `ID` column.
+            - **5** `ComponentX_fraction` columns (X in 1-5).
+            - **50** `ComponentX_PropertyY` columns(X in 1-5 and Y in 1-10).
+            - The component fractions for each row must sum to **1.0**.
+            - 56 columns in total.
+
+            *Click 'Load Example Data' to see a working example.*
+            """
+            )
+
         with col2:
-            st.markdown("</br>", unsafe_allow_html=True)
+            # Remove <br>, add margin-top for vertical alignment
+            st.markdown("<div style='margin-top: 40px;'>", unsafe_allow_html=True)
             if st.button("Load Example Data", use_container_width=True):
                 try:
                     example_df = pd.read_csv("datasets/test.csv").head(10)
@@ -876,6 +903,7 @@ def main():
                     st.rerun()
                 except FileNotFoundError:
                     st.error("Could not find 'datasets/test.csv'.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
         df_to_process = None
         if uploaded_file:
@@ -884,7 +912,7 @@ def main():
             df_to_process = st.session_state.batch_input_df
 
         if df_to_process is not None:
-            st.info("📝 Review your data below. The graphs will check for issues.")
+            st.info("Review your data below. The graphs will check for issues.")
             edited_df = st.data_editor(df_to_process, use_container_width=True, num_rows="dynamic", key="editable_csv")
 
             if edited_df.empty:
@@ -895,24 +923,28 @@ def main():
 
             st.session_state.batch_input_df = final_df
 
-            st.subheader("🕵 File Health Analysis")
+            st.subheader("File Health Analysis")
             col1, col2 = st.columns(2)
             with col1:
                 st.plotly_chart(plot_missing_matrix(final_df), use_container_width=True)
-                st.caption("💡 COACH'S TIP: This matrix shows where data is missing (red spots). "
-                           "A fully green chart means your data is complete and healthy!")
+                st.markdown(
+                    '<p style="color:black; text-align: center;"><b>COACH\'S TIP:</b> This matrix shows missing data (blue spots). A fully light-gray chart is healthy!</p>',
+                    unsafe_allow_html=True
+                )
             with col2:
                 st.plotly_chart(plot_fraction_sums(final_df), use_container_width=True)
-                st.caption("⚖ VALIDATION: This chart checks if your fractions add up to 1.0. "
-                           "Any red bars indicate rows that need to be fixed in the editor above.")
+                st.markdown(
+                    '<p style="color:black; text-align: center;"><b>VALIDATION:</b> This chart checks if fractions sum to 1.0. Red bars show rows needing fixes.</p>',
+                    unsafe_allow_html=True
+                )
 
             st.markdown("---")
 
             is_valid, msg = validate_batch_input(final_df)
             if not is_valid:
-                st.error(f"❌ Validation Failed: {msg}")
+                st.error(f" Validation Failed :( : {msg}")
             else:
-                st.success("✅ Validation Passed: Your data looks good! You can now proceed to prediction.")
+                st.success("Validation Passed :) : Your data looks good! You can now proceed to prediction.")
 
             if st.button("➡ Predict", use_container_width=True, disabled=not is_valid):
                 st.session_state.step = 2

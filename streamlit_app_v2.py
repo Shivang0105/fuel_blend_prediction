@@ -750,6 +750,7 @@ def main():
                 }
             </style>
             """, unsafe_allow_html=True)
+        
         # --- Page Content ---
         with st.container():
             try:
@@ -871,6 +872,15 @@ def main():
         </script>
         """, unsafe_allow_html=True)
         return
+    
+    with st.container():
+        col1, col2 = st.columns([1, 10])
+        with col1:
+            if st.button("🏠 Home"):
+                st.session_state.step = 0
+                for key in ["batch_input_df", "final_prediction_df"]:
+                    st.session_state.pop(key, None)
+                st.rerun()
 
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV

@@ -852,7 +852,6 @@ def main():
 
                 video_path = os.path.join("images", "Logo0000-0050.webm") 
                 video_base64 = get_video_as_base64(video_path)
-
                 st.markdown(f"""
                 <div style="text-align: center;">
                     <video autoplay muted playsinline style="background:transparent; width: 600px; height: auto; pointer-events:none;">

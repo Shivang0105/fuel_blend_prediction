@@ -850,7 +850,7 @@ def main():
         with st.container():
             try:
 
-                video_path = os.path.join("images", "Logo0000-0100.webm") 
+                video_path = os.path.join("images", "Logo0000-0050.webm") 
                 video_base64 = get_video_as_base64(video_path)
 
                 st.markdown(f"""

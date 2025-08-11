@@ -594,7 +594,76 @@ def _filter_shap_features(shap_explanation, features_df):
     filtered_features_df = features_df[desired_features]
 
     return new_explanation, filtered_features_df
+def render_scroll_video(video_base64):
+    """
+    Renders a video that plays once, then scrubs in reverse on scroll.
+    """
+    st.markdown(f"""
+    <style>
+        /* This container defines the scrollable area's height */
+        #scroll-container {{
+            height: 250vh; /* Adjust this to make the scroll longer or shorter */
+            position: relative;
+            margin-top: -50px; /* Adjust positioning as needed */
+        }}
+        #video-wrapper {{
+            height: 100vh; /* Takes up the full screen height */
+            width: 100%;
+            position: sticky; /* This makes the video 'stick' while the container scrolls */
+            top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }}
+        #scroll-video {{
+            max-width: 600px; /* Adjust max video size */
+            height: auto;
+        }}
+    </style>
 
+    <div id="scroll-container">
+        <div id="video-wrapper">
+            <video id="scroll-video" autoplay muted playsinline style="background:transparent; pointer-events:none;">
+                <source src="data:video/webm;base64,{video_base64}" type="video/webm" />
+            </video>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('scroll-video');
+        const scrollContainer = document.getElementById('scroll-container');
+
+        // This function will be called when the video finishes its first playthrough
+        video.onended = function() {{
+            console.log("Video finished playing, enabling scroll control.");
+            // Set the video to its final frame
+            video.currentTime = video.duration;
+
+            // Attach the scroll listener
+            window.addEventListener('scroll', handleScroll);
+        }};
+
+        function handleScroll() {{
+            // We need to wait for the video's metadata to load to get its duration
+            if (video.duration) {{
+                // Calculate how far down the container has been scrolled (from 0.0 to 1.0)
+                const scrollTop = window.scrollY;
+                const containerTop = scrollContainer.offsetTop;
+                const containerHeight = scrollContainer.offsetHeight;
+                
+                let scrollFraction = (scrollTop - containerTop) / (containerHeight - window.innerHeight);
+                scrollFraction = Math.min(1, Math.max(0, scrollFraction));
+
+                // Map the scroll fraction to the video's timestamp IN REVERSE
+                const videoTime = video.duration * (1 - scrollFraction);
+
+                // Update the video's current time to scrub it
+                video.currentTime = videoTime;
+            }}
+        }}
+    </script>
+    """, unsafe_allow_html=True)
 def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
     gif_base64 = get_gif_base64(gif_path)
@@ -629,7 +698,10 @@ def load_lottieurl(url: str):
     if r.status_code != 200:
         return None
     return r.json()
-
+def get_video_as_base64(path):
+    """Reads a video file and returns its base64 encoded string."""
+    with open(path, "rb") as video_file:
+        return base64.b64encode(video_file.read()).decode()
 # --- 3. Main Application ---
 def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
@@ -685,47 +757,72 @@ def main():
     if st.session_state.step == 0:
         st.markdown("""
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap');
                 html, body, [class*="css"] {
                     font-family: 'Inter', sans-serif;
                 }
                 .big-title {
+                    font-family: 'Poppins', sans-serif;
                     font-size: 3.8em;
-                    font-weight: 900;
+                    font-weight: 800;
+                    letter-spacing: 0.04em;
                     text-align: center;
-                    background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);
-                    background-size: 200% auto;
+                    /* ✨ CHANGED: Using a darker, more vibrant gradient for readability */
+                    background: linear-gradient(
+                        to right, 
+                        #d94686, /* Vibrant Pink */
+                        #4a90e2, /* Strong Blue */
+                        #50c878  /* Emerald Green */
+                    );
                     color: #000;
                     background-clip: text;
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
-                    animation: shine 4s linear infinite;
+                    /* ✨ CHANGED: Switched to a subtle dark shadow for depth */
                 }
-                @keyframes shine {
-                    to {
-                        background-position: 200% center;
-                    }
-                }
-                .subtitle { font-size: 1.25em; color: #005A9C; text-align: center; margin-bottom: 2em; }
-                .section-header { text-align: center; font-size: 2.2em; font-weight: 700; margin-top: 2em; margin-bottom: 1em; color: #005A9C; }
 
-                /* --- UPDATED BUTTON STYLE --- */
+                @keyframes hue-cycle {
+                    from { filter: hue-rotate(0deg); }
+                    to { filter: hue-rotate(360deg); }
+                }
+                
+                .subtitle {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 1.35em;
+                    font-weight: 600;
+                    /* ✨ CHANGED: A darker, more readable slate blue */
+                    color: #4A6B8A;
+                    text-align: center;
+                    margin-bottom: 2.5em;
+                    /* ✨ CHANGED: A subtle dark shadow to lift the text */
+                    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+                }
+
+                /* --- Other styles remain the same --- */
+                .section-header {
+                    text-align: center;
+                    font-size: 2.2em;
+                    font-weight: 700;
+                    margin-top: 2em;
+                    margin-bottom: 1em;
+                    color: #6796c8;
+                    text-shadow: 0 0 3px rgba(255,255,255,0.8);
+                }
                 div[data-testid="stButton"] > button {
                     font-size: 1.2em;
                     font-weight: 700;
                     padding: 0.8em 1em;
                     border-radius: 8px;
-                    background-image: linear-gradient(45deg, #ff9a8b, #87ceeb);
+                    background-image: linear-gradient(45deg, #fbc3bc, #a3cdfb);
                     color: white;
                     border: none;
                     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+                    text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
                 }
                 div[data-testid="stButton"] > button:hover {
                     transform: scale(1.05);
-                    box-shadow: 0 8px 30px rgba(135, 206, 235, 0.5);
+                    box-shadow: 0 8px 30px rgba(163, 205, 251, 0.5);
                 }
-
                 .logo-container {
                     display: flex;
                     justify-content: center;
@@ -742,8 +839,8 @@ def main():
                     transition: transform 0.4s ease-out, filter 0.4s ease-out;
                 }
                 .logo-container:hover #interactive-logo-img {
-                    filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
-                            drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
+                    filter: drop-shadow(-8px 0 6px rgba(249, 213, 229, 0.7))
+                            drop-shadow(8px 0 6px rgba(169, 214, 229, 0.7));
                     transform: scale(1.1);
                     transition: transform 0.05s linear, filter 0.4s ease-out;
                 }
@@ -752,25 +849,23 @@ def main():
         # --- Page Content ---
         with st.container():
             try:
-                logo_path = "images/unnamed-removebg-preview.png"
-                logo_base64 = image_to_base64(logo_path)
 
-                _ , col2, _ = st.columns([1, 1, 1])
-                with col2:
-                    st.markdown(f"""
-                    <div class="logo-container">
-                        <img id="interactive-logo-img" src="data:image/png;base64,{logo_base64}">
-                    </div>
-                    """, unsafe_allow_html=True)
+                video_path = os.path.join("images", "Logo0000-0100.webm") 
+                video_base64 = get_video_as_base64(video_path)
+
+                st.markdown(f"""
+                <div style="text-align: center;">
+                    <video autoplay muted playsinline style="background:transparent; width: 600px; height: auto; pointer-events:none;">
+                        <source src="data:video/webm;base64,{video_base64}" type="video/webm" />
+                    </video>
+                </div>
+                """, unsafe_allow_html=True)
 
             except FileNotFoundError:
                 _ , col2, _ = st.columns([1, 1, 1])
                 with col2:
                     st.error("⚠ Logo image not found.")
-
             st.markdown('<div class="big-title">Shell.ai Fuel Blend Hackathon</div>', unsafe_allow_html=True)
-            st.markdown('<div class="subtitle">Reimagining sustainable energy with AI-powered fuel property prediction.</div>', unsafe_allow_html=True)
-
             st.markdown("""
             <div style="text-align:center; max-width:850px; margin:auto; padding-top: 1.5em;">
                 <p style="font-size: 1.35em; font-weight: 700; color: #005A9C; margin-bottom: 0.6em;">

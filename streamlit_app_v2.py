@@ -600,9 +600,9 @@ def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
     gif_base64 = get_gif_base64(gif_path)
     render_flow_block("Input Data","55 features per blend","5 volume fractions and 50 component properties from real-world Certificates of Analysis (COA), defining chemical, safety, and environmental attributes.","#6366F1","🗃")
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
     render_flow_block("Feature Engineering","Creates blend-weighted features","Generates weighted averages, residuals, and statistical summaries to transform raw data into more informative features for better model learning.","#6B7280","🛠")
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     with col1:
         render_flow_block("LightGBM","Base Model","A high-performance gradient-boosting framework using leaf-wise tree growth for fast, memory-efficient, and accurate training.","#10B981","🌲",260)
@@ -612,9 +612,9 @@ def render_flow_diagram():
         render_flow_block("CatBoost","Base Model","A gradient boosting method that natively handles categorical data using symmetric trees, reducing overfitting and preprocessing effort.","#F59E0B","🐱",260)
     with col4:
         render_flow_block("Neural Net","Base Model","A model inspired by the human brain, consisting of layered nodes that learn complex patterns and non-linear relationships from data.","#EC4899","🧠",260)
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
     render_flow_block("Meta Model","RidgeCV Ensemble","Linearly combines base model predictions, using RidgeCV to find the best regularization strength and learn optimal weights for a robust final prediction.","#DC2626","🧰")
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
     with col1:
         render_flow_block("Calibration","Isotonic Regression","Adjusts ensemble predictions using non-parametric Isotonic Regression, reducing systematic bias and aligning outputs closer to observed data for improved reliability.","#38BDF8","📈",480)
@@ -640,11 +640,7 @@ def main():
     st.markdown("""
     <style>
         .block-container {
-<<<<<<< HEAD
             padding-top: 1rem !important;
-=======
-            padding-top: 0rem !important;
->>>>>>> cbc9a1e0833d7c850c75e107e2f5e9815b10729a
         }
                 
         /* Main app background with vibrant gradient patches on top & strong white fade on bottom center */
@@ -860,7 +856,6 @@ def main():
 
         return
     
-<<<<<<< HEAD
     with st.container():
         col1, col2 = st.columns([1, 10])
         with col1:
@@ -869,32 +864,6 @@ def main():
                 for key in ["batch_input_df", "final_prediction_df"]:
                     st.session_state.pop(key, None)
                 st.rerun()
-=======
-    # --- NEW: Clickable Header to go Home ---
-    try:
-        logo_base64 = image_to_base64("images/unnamed-removebg-preview.png")
-        st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;">
-            <a href="." target="_self" style="text-decoration: none;">
-                <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
-                    <img src="data:image/png;base64,{logo_base64}" width="80">
-                    <h2 style="margin: 0; font-weight: 600; font-size: 2rem;">Shell.ai Hackathon</h2>
-                </div>
-            </a>
-            <div style="font-size: 2rem; font-weight: 400; color: #0072c6;">Team Locus</div>
-        </div>
-        """, unsafe_allow_html=True)
-    except FileNotFoundError:
-        # Fallback if logo is missing
-        st.markdown("""
-        <div style="display: flex; justify-content: flex-end; padding-bottom: 1rem;">
-            <div style="font-size: 1.1rem; font-weight: 600; color: #0072c6;">Team Locus</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("🏠 Home"):
-            st.session_state.step = 0
-            st.rerun()
->>>>>>> cbc9a1e0833d7c850c75e107e2f5e9815b10729a
 
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV
@@ -906,19 +875,11 @@ def main():
             uploaded_file = st.file_uploader("Upload your CSV file:", type=["csv"])
             st.markdown(
             """
-<<<<<<< HEAD
             *Your CSV file must have:*
             - An ID column.
             - *5* ComponentX_fraction columns (X in 1-5).
             - *50* ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
             - The component fractions for each row must sum to *1.0*.
-=======
-            Your CSV file must have:
-            - An ID column.
-            - 5 ComponentX_fraction columns (X in 1-5).
-            - 50 ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
-            - The component fractions for each row must sum to 1.0.
->>>>>>> cbc9a1e0833d7c850c75e107e2f5e9815b10729a
             - 56 columns in total.
 
             Click 'Load Example Data' to see a working example.

@@ -327,6 +327,7 @@ def image_to_base64(path):
     """Converts a local image file to a base64 string."""
     with open(path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode()
+    
 def plot_missing_matrix(df):
     mask = df.isnull().astype(int)
 
@@ -594,76 +595,7 @@ def _filter_shap_features(shap_explanation, features_df):
     filtered_features_df = features_df[desired_features]
 
     return new_explanation, filtered_features_df
-def render_scroll_video(video_base64):
-    """
-    Renders a video that plays once, then scrubs in reverse on scroll.
-    """
-    st.markdown(f"""
-    <style>
-        /* This container defines the scrollable area's height */
-        #scroll-container {{
-            height: 250vh; /* Adjust this to make the scroll longer or shorter */
-            position: relative;
-            margin-top: -50px; /* Adjust positioning as needed */
-        }}
-        #video-wrapper {{
-            height: 100vh; /* Takes up the full screen height */
-            width: 100%;
-            position: sticky; /* This makes the video 'stick' while the container scrolls */
-            top: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }}
-        #scroll-video {{
-            max-width: 600px; /* Adjust max video size */
-            height: auto;
-        }}
-    </style>
 
-    <div id="scroll-container">
-        <div id="video-wrapper">
-            <video id="scroll-video" autoplay muted playsinline style="background:transparent; pointer-events:none;">
-                <source src="data:video/webm;base64,{video_base64}" type="video/webm" />
-            </video>
-        </div>
-    </div>
-
-    <script>
-        const video = document.getElementById('scroll-video');
-        const scrollContainer = document.getElementById('scroll-container');
-
-        // This function will be called when the video finishes its first playthrough
-        video.onended = function() {{
-            console.log("Video finished playing, enabling scroll control.");
-            // Set the video to its final frame
-            video.currentTime = video.duration;
-
-            // Attach the scroll listener
-            window.addEventListener('scroll', handleScroll);
-        }};
-
-        function handleScroll() {{
-            // We need to wait for the video's metadata to load to get its duration
-            if (video.duration) {{
-                // Calculate how far down the container has been scrolled (from 0.0 to 1.0)
-                const scrollTop = window.scrollY;
-                const containerTop = scrollContainer.offsetTop;
-                const containerHeight = scrollContainer.offsetHeight;
-                
-                let scrollFraction = (scrollTop - containerTop) / (containerHeight - window.innerHeight);
-                scrollFraction = Math.min(1, Math.max(0, scrollFraction));
-
-                // Map the scroll fraction to the video's timestamp IN REVERSE
-                const videoTime = video.duration * (1 - scrollFraction);
-
-                // Update the video's current time to scrub it
-                video.currentTime = videoTime;
-            }}
-        }}
-    </script>
-    """, unsafe_allow_html=True)
 def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
     gif_base64 = get_gif_base64(gif_path)
@@ -698,10 +630,7 @@ def load_lottieurl(url: str):
     if r.status_code != 200:
         return None
     return r.json()
-def get_video_as_base64(path):
-    """Reads a video file and returns its base64 encoded string."""
-    with open(path, "rb") as video_file:
-        return base64.b64encode(video_file.read()).decode()
+
 # --- 3. Main Application ---
 def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
@@ -710,6 +639,10 @@ def main():
     # --- ✨ NEW: Patched Gradient Background Theme ---
     st.markdown("""
     <style>
+        .block-container {
+            padding-top: 1rem !important;
+        }
+                
         /* Main app background with vibrant gradient patches on top & strong white fade on bottom center */
         .stApp {
             background-color: #FFFFFF; /* Pure white base */
@@ -720,7 +653,7 @@ def main():
                 radial-gradient(at 75% 30%, hsla(50, 100%, 75%, 0.75) 0px, transparent 50%),
                 radial-gradient(at 25% 35%, hsla(210, 100%, 80%, 0.75) 0px, transparent 50%),
 
-                /* KEY CHANGE: This gradient now makes the bottom ~60% of the page white */
+                /* White fade for bottom half */
                 linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,1) 60%);
                 
             background-repeat: no-repeat;
@@ -753,118 +686,108 @@ def main():
 
     if 'step' not in st.session_state:
         st.session_state.step = 0
-# --- Step 0: Landing Page ---
+
+    # --- Step 0: Landing Page ---
     if st.session_state.step == 0:
         st.markdown("""
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;800&display=swap');
-                html, body, [class*="css"] {
-                    font-family: 'Inter', sans-serif;
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            html, body, [class*="css"] {
+                font-family: 'Inter', sans-serif;
+            }
+            .big-title {
+                font-size: 3.8em;
+                font-weight: 900;
+                text-align: center;
+                background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);
+                background-size: 200% auto;
+                color: #000;
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                animation: shine 4s linear infinite;
+            }
+            @keyframes shine {
+                to {
+                    background-position: 200% center;
                 }
-                .big-title {
-                    font-family: 'Poppins', sans-serif;
-                    font-size: 3.8em;
-                    font-weight: 800;
-                    letter-spacing: 0.04em;
-                    text-align: center;
-                    /* ✨ CHANGED: Using a darker, more vibrant gradient for readability */
-                    background: linear-gradient(
-                        to right, 
-                        #d94686, /* Vibrant Pink */
-                        #4a90e2, /* Strong Blue */
-                        #50c878  /* Emerald Green */
-                    );
-                    color: #000;
-                    background-clip: text;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    /* ✨ CHANGED: Switched to a subtle dark shadow for depth */
-                }
+            }
+                    
+            .subtitle { font-size: 1.25em; color: #005A9C; text-align: center; margin-bottom: 2em; }
+            .section-header { text-align: center; font-size: 2.2em; font-weight: 700; margin-top: 2em; margin-bottom: 1em; color: #005A9C; }
 
-                @keyframes hue-cycle {
-                    from { filter: hue-rotate(0deg); }
-                    to { filter: hue-rotate(360deg); }
-                }
-                
-                .subtitle {
-                    font-family: 'Inter', sans-serif;
-                    font-size: 1.35em;
-                    font-weight: 600;
-                    /* ✨ CHANGED: A darker, more readable slate blue */
-                    color: #4A6B8A;
-                    text-align: center;
-                    margin-bottom: 2.5em;
-                    /* ✨ CHANGED: A subtle dark shadow to lift the text */
-                    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
-                }
+            /* --- BRIGHTER SUBTLE MATTE BLUE → CYAN BUTTON --- */
+            div[data-testid="stButton"] > button {
+                font-size: 1.3em !important; /* force size */
+                font-weight: 800 !important; /* force bold */
+                padding: 0.9em 1.2em;
+                border-radius: 50px;
+                background-image: linear-gradient(45deg, #0057b7 30%, #00d4ff 70%);
+                color: white !important;
+                border: none;
+                transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+                box-shadow: 0 4px 18px rgba(0, 212, 255, 0.35);
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+            }
 
-                /* --- Other styles remain the same --- */
-                .section-header {
-                    text-align: center;
-                    font-size: 2.2em;
-                    font-weight: 700;
-                    margin-top: 2em;
-                    margin-bottom: 1em;
-                    color: #6796c8;
-                    text-shadow: 0 0 3px rgba(255,255,255,0.8);
-                }
-                div[data-testid="stButton"] > button {
-                    font-size: 1.2em;
-                    font-weight: 700;
-                    padding: 0.8em 1em;
-                    border-radius: 8px;
-                    background-image: linear-gradient(45deg, #fbc3bc, #a3cdfb);
-                    color: white;
-                    border: none;
-                    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-                    text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
-                }
-                div[data-testid="stButton"] > button:hover {
-                    transform: scale(1.05);
-                    box-shadow: 0 8px 30px rgba(163, 205, 251, 0.5);
-                }
-                .logo-container {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 1rem 0;
-                    margin-bottom: -1rem;
-                    perspective: 800px;
-                }
-                #interactive-logo-img {
-                    max-width: 250px;
-                    cursor: pointer;
-                    filter: none;
-                    transform: scale(1);
-                    transition: transform 0.4s ease-out, filter 0.4s ease-out;
-                }
-                .logo-container:hover #interactive-logo-img {
-                    filter: drop-shadow(-8px 0 6px rgba(249, 213, 229, 0.7))
-                            drop-shadow(8px 0 6px rgba(169, 214, 229, 0.7));
-                    transform: scale(1.1);
-                    transition: transform 0.05s linear, filter 0.4s ease-out;
-                }
-            </style>
-            """, unsafe_allow_html=True)
+            /* make sure the text inside also scales */
+            div[data-testid="stButton"] > button > div > p,
+            div[data-testid="stButton"] > button > span {
+                font-size: 1.3em !important;
+                font-weight: 800 !important;
+            }
+
+            div[data-testid="stButton"] > button:hover {
+                transform: scale(1.05);
+                box-shadow: 0 8px 28px rgba(0, 212, 255, 0.45);
+            }
+
+
+
+            .logo-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 1rem 0;
+                margin-bottom: -1rem;
+                perspective: 800px;
+            }
+            #interactive-logo-img {
+                max-width: 250px;
+                cursor: pointer;
+                filter: none;
+                transform: scale(1);
+                transition: transform 0.4s ease-out, filter 0.4s ease-out;
+            }
+            .logo-container:hover #interactive-logo-img {
+                filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
+                        drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
+                transform: scale(1.1);
+                transition: transform 0.05s linear, filter 0.4s ease-out;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
         # --- Page Content ---
         with st.container():
             try:
-
-                video_path = os.path.join("images", "Logo0000-0050.webm") 
-                video_base64 = get_video_as_base64(video_path)
-                st.markdown(f"""
-                <div style="text-align: center;">
-                    <video autoplay muted playsinline style="background:transparent; width: 600px; height: auto; pointer-events:none;">
-                        <source src="data:video/webm;base64,{video_base64}" type="video/webm" />
-                    </video>
-                </div>
-                """, unsafe_allow_html=True)
-
+                logo_path = "images/unnamed-removebg-preview.png"
+                logo_base64 = image_to_base64(logo_path)
+                _ , col2, _ = st.columns([1, 1, 1])
+                with col2:
+                    st.markdown(f"""
+                    <div class="logo-container">
+                        <img id="interactive-logo-img" src="data:image/png;base64,{logo_base64}">
+                    </div>
+                    """, unsafe_allow_html=True)
             except FileNotFoundError:
                 _ , col2, _ = st.columns([1, 1, 1])
                 with col2:
                     st.error("⚠ Logo image not found.")
+
             st.markdown('<div class="big-title">Shell.ai Fuel Blend Hackathon</div>', unsafe_allow_html=True)
+            st.markdown('<div class="subtitle">Reimagining sustainable energy with AI-powered fuel property prediction.</div>', unsafe_allow_html=True)
+
             st.markdown("""
             <div style="text-align:center; max-width:850px; margin:auto; padding-top: 1.5em;">
                 <p style="font-size: 1.35em; font-weight: 700; color: #005A9C; margin-bottom: 0.6em;">
@@ -878,17 +801,46 @@ def main():
             if lottie_json:
                 st_lottie(lottie_json, height=280, speed=1, quality="high")
 
-            # --- NEW: Team Details Section ---
-            st.markdown('<div class="section-header">Meet the Team</div>', unsafe_allow_html=True)
+            # --- Team Section ---
             st.markdown("""
-            <div style="text-align:center; margin-bottom: 3em;">
-                <h3 style="font-weight: 700; color: #0072c6;">Team Locus</h3>
-                <p style="color: #005A9C; font-size: 1.1em; font-weight: 500;">
-                    Abhinav Tyagi &nbsp; • &nbsp; Shivang Sharma &nbsp; • &nbsp; Siddharth Bansal &nbsp; • &nbsp; Utkarsh Singh
-                </p>
+            <div style="
+                margin: 2em auto; 
+                max-width: 600px; 
+                padding: 2em 3em; 
+                border-radius: 15px;
+                background: linear-gradient(135deg, rgba(135,206,250,0.3), rgba(255,182,193,0.3));
+                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 182, 193, 0.3);
+                text-align: center;
+                color: #005A9C;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">
+                <h3 style="font-weight: 700; font-size: 2.2em; margin-bottom: 0.5em; color: #0072c6;">Team Locus</h3>
+                <div style="display: flex; justify-content: center; gap: 6em; font-size: 1.5em; font-weight: 600;">
+                    <div style="text-align: left;">
+                        <p style="margin: 0.3em 0;">Abhinav Tyagi</p>
+                        <p style="margin: 0.3em 0;">Siddharth Bansal</p>
+                    </div>
+                    <div style="text-align: left;">
+                        <p style="margin: 0.3em 0;">Shivang Sharma</p>
+                        <p style="margin: 0.3em 0;">Utkarsh Singh</p>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
+            st.markdown("""
+            <div style="text-align:center; padding:2em 0; margin-top:2em;">
+                <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
+                <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("Launch Prediction Tool", use_container_width=True):
+                st.session_state.step = 1
+                st.rerun()
 
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
@@ -902,50 +854,16 @@ def main():
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
 
-            st.markdown("""
-            <div style="text-align:center; padding:2em 0; margin-top:2em;">
-                <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
-                <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button("🚀 Launch Prediction Tool", use_container_width=True):
-                st.session_state.step = 1
-                st.rerun()
-
-        st.markdown("""
-        <script>
-            function attachLogoAnimation() {
-                const logo = document.getElementById('interactive-logo-img');
-                const container = document.querySelector('.logo-container');
-
-                if (logo && container) {
-                    clearInterval(checkInterval);
-
-                    const maxRotation = 20;
-                    container.addEventListener('mousemove', (e) => {
-                        const rect = container.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const y = e.clientY - rect.top;
-                        const centerX = rect.width / 2;
-                        const centerY = rect.height / 2;
-                        const deltaX = x - centerX;
-                        const deltaY = y - centerY;
-
-                        const rotateY = (deltaX / centerX) * maxRotation;
-                        const rotateX = -(deltaY / centerY) * maxRotation;
-
-                        logo.style.transform = rotateX(${rotateX}deg) rotateY(${rotateY}deg);
-                    });
-
-                    container.addEventListener('mouseleave', () => {
-                        logo.style.transform = 'rotateX(0) rotateY(0)';
-                    });
-                }
-            }
-            const checkInterval = setInterval(attachLogoAnimation, 100);
-        </script>
-        """, unsafe_allow_html=True)
         return
+    
+    with st.container():
+        col1, col2 = st.columns([1, 10])
+        with col1:
+            if st.button("🏠 Home"):
+                st.session_state.step = 0
+                for key in ["batch_input_df", "final_prediction_df"]:
+                    st.session_state.pop(key, None)
+                st.rerun()
 
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV
@@ -955,14 +873,22 @@ def main():
         col1, col2 = st.columns([3, 1])
         with col1:
             uploaded_file = st.file_uploader("Upload your CSV file:", type=["csv"])
-            with st.expander("❓ Not sure about the file format?"):
-                    st.info(
-                        "The CSV should contain an 'ID' column, 5 'ComponentX_fraction' columns, "
-                        "and 50 'ComponentX_PropertyY' columns. The component fractions for each row must sum to 1.0."
-                    )
-                    st.markdown("Click the Load Example Data button to see a working example.")
+            st.markdown(
+            """
+            *Your CSV file must have:*
+            - An ID column.
+            - *5* ComponentX_fraction columns (X in 1-5).
+            - *50* ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
+            - The component fractions for each row must sum to *1.0*.
+            - 56 columns in total.
+
+            Click 'Load Example Data' to see a working example.
+            """
+            )
+
         with col2:
-            st.markdown("</br>", unsafe_allow_html=True)
+            # Remove <br>, add margin-top for vertical alignment
+            st.markdown("<div style='margin-top: 40px;'>", unsafe_allow_html=True)
             if st.button("Load Example Data", use_container_width=True):
                 try:
                     example_df = pd.read_csv("datasets/test.csv").head(10)
@@ -970,6 +896,7 @@ def main():
                     st.rerun()
                 except FileNotFoundError:
                     st.error("Could not find 'datasets/test.csv'.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
         df_to_process = None
         if uploaded_file:
@@ -978,7 +905,7 @@ def main():
             df_to_process = st.session_state.batch_input_df
 
         if df_to_process is not None:
-            st.info("📝 Review your data below. The graphs will check for issues.")
+            st.info("Review your data below. The graphs will check for issues.")
             edited_df = st.data_editor(df_to_process, use_container_width=True, num_rows="dynamic", key="editable_csv")
 
             if edited_df.empty:
@@ -989,24 +916,28 @@ def main():
 
             st.session_state.batch_input_df = final_df
 
-            st.subheader("🕵 File Health Analysis")
+            st.subheader("File Health Analysis")
             col1, col2 = st.columns(2)
             with col1:
                 st.plotly_chart(plot_missing_matrix(final_df), use_container_width=True)
-                st.caption("💡 COACH'S TIP: This matrix shows where data is missing (red spots). "
-                           "A fully green chart means your data is complete and healthy!")
+                st.markdown(
+                    '<p style="color:black; text-align: center;"><b>COACH\'S TIP:</b> This matrix shows missing data (blue spots). A fully light-gray chart is healthy!</p>',
+                    unsafe_allow_html=True
+                )
             with col2:
                 st.plotly_chart(plot_fraction_sums(final_df), use_container_width=True)
-                st.caption("⚖ VALIDATION: This chart checks if your fractions add up to 1.0. "
-                           "Any red bars indicate rows that need to be fixed in the editor above.")
+                st.markdown(
+                    '<p style="color:black; text-align: center;"><b>VALIDATION:</b> This chart checks if fractions sum to 1.0. Red bars show rows needing fixes.</p>',
+                    unsafe_allow_html=True
+                )
 
             st.markdown("---")
 
             is_valid, msg = validate_batch_input(final_df)
             if not is_valid:
-                st.error(f"❌ Validation Failed: {msg}")
+                st.error(f" Validation Failed :( : {msg}")
             else:
-                st.success("✅ Validation Passed: Your data looks good! You can now proceed to prediction.")
+                st.success("Validation Passed :) : Your data looks good! You can now proceed to prediction.")
 
             if st.button("➡ Predict", use_container_width=True, disabled=not is_valid):
                 st.session_state.step = 2

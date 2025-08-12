@@ -477,7 +477,7 @@ def render_flow_block(title, subtitle, detail, color, icon="💡", width="300px"
     # --- UPDATED TEXT COLORS TO BLUE ---
     title_color = "#005A9C"      # Dark Blue
     subtitle_color = "#0072c6"   # Standard Blue
-    detail_color = "#4DA8DA"     # Light Blue
+    detail_color = "#32779C"     # Light Blue
 
     st.markdown(f"""
     <div class="{block_id}">

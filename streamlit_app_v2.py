@@ -600,9 +600,9 @@ def render_flow_diagram():
     gif_path = os.path.join("images", "arrow-down-navigation.gif")
     gif_base64 = get_gif_base64(gif_path)
     render_flow_block("Input Data","55 features per blend","5 volume fractions and 50 component properties from real-world Certificates of Analysis (COA), defining chemical, safety, and environmental attributes.","#6366F1","🗃")
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     render_flow_block("Feature Engineering","Creates blend-weighted features","Generates weighted averages, residuals, and statistical summaries to transform raw data into more informative features for better model learning.","#6B7280","🛠")
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     with col1:
         render_flow_block("LightGBM","Base Model","A high-performance gradient-boosting framework using leaf-wise tree growth for fast, memory-efficient, and accurate training.","#10B981","🌲",260)
@@ -612,9 +612,9 @@ def render_flow_diagram():
         render_flow_block("CatBoost","Base Model","A gradient boosting method that natively handles categorical data using symmetric trees, reducing overfitting and preprocessing effort.","#F59E0B","🐱",260)
     with col4:
         render_flow_block("Neural Net","Base Model","A model inspired by the human brain, consisting of layered nodes that learn complex patterns and non-linear relationships from data.","#EC4899","🧠",260)
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     render_flow_block("Meta Model","RidgeCV Ensemble","Linearly combines base model predictions, using RidgeCV to find the best regularization strength and learn optimal weights for a robust final prediction.","#DC2626","🧰")
-    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' /></div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
     with col1:
         render_flow_block("Calibration","Isotonic Regression","Adjusts ensemble predictions using non-parametric Isotonic Regression, reducing systematic bias and aligning outputs closer to observed data for improved reliability.","#38BDF8","📈",480)
@@ -639,6 +639,10 @@ def main():
     # --- ✨ NEW: Patched Gradient Background Theme ---
     st.markdown("""
     <style>
+        .block-container {
+            padding-top: 0rem !important;
+        }
+                
         /* Main app background with vibrant gradient patches on top & strong white fade on bottom center */
         .stApp {
             background-color: #FFFFFF; /* Pure white base */
@@ -649,7 +653,7 @@ def main():
                 radial-gradient(at 75% 30%, hsla(50, 100%, 75%, 0.75) 0px, transparent 50%),
                 radial-gradient(at 25% 35%, hsla(210, 100%, 80%, 0.75) 0px, transparent 50%),
 
-                /* KEY CHANGE: This gradient now makes the bottom ~60% of the page white */
+                /* White fade for bottom half */
                 linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,1) 60%);
                 
             background-repeat: no-repeat;
@@ -682,81 +686,93 @@ def main():
 
     if 'step' not in st.session_state:
         st.session_state.step = 0
-# --- Step 0: Landing Page ---
+
+    # --- Step 0: Landing Page ---
     if st.session_state.step == 0:
         st.markdown("""
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-                html, body, [class*="css"] {
-                    font-family: 'Inter', sans-serif;
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            html, body, [class*="css"] {
+                font-family: 'Inter', sans-serif;
+            }
+            .big-title {
+                font-size: 3.8em;
+                font-weight: 900;
+                text-align: center;
+                background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);
+                background-size: 200% auto;
+                color: #000;
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                animation: shine 4s linear infinite;
+            }
+            @keyframes shine {
+                to {
+                    background-position: 200% center;
                 }
-                .big-title {
-                    font-size: 3.8em;
-                    font-weight: 900;
-                    text-align: center;
-                    background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);
-                    background-size: 200% auto;
-                    color: #000;
-                    background-clip: text;
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    animation: shine 4s linear infinite;
-                }
-                @keyframes shine {
-                    to {
-                        background-position: 200% center;
-                    }
-                }
-                .subtitle { font-size: 1.25em; color: #005A9C; text-align: center; margin-bottom: 2em; }
-                .section-header { text-align: center; font-size: 2.2em; font-weight: 700; margin-top: 2em; margin-bottom: 1em; color: #005A9C; }
+            }
+                    
+            .subtitle { font-size: 1.25em; color: #005A9C; text-align: center; margin-bottom: 2em; }
+            .section-header { text-align: center; font-size: 2.2em; font-weight: 700; margin-top: 2em; margin-bottom: 1em; color: #005A9C; }
 
-                /* --- UPDATED BUTTON STYLE --- */
-                div[data-testid="stButton"] > button {
-                    font-size: 1.2em;
-                    font-weight: 700;
-                    padding: 0.8em 1em;
-                    border-radius: 8px;
-                    background-image: linear-gradient(45deg, #ff9a8b, #87ceeb);
-                    color: white;
-                    border: none;
-                    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-                    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-                }
-                div[data-testid="stButton"] > button:hover {
-                    transform: scale(1.05);
-                    box-shadow: 0 8px 30px rgba(135, 206, 235, 0.5);
-                }
+            /* --- BRIGHTER SUBTLE MATTE BLUE → CYAN BUTTON --- */
+            div[data-testid="stButton"] > button {
+                font-size: 1.3em !important; /* force size */
+                font-weight: 800 !important; /* force bold */
+                padding: 0.9em 1.2em;
+                border-radius: 50px;
+                background-image: linear-gradient(45deg, #0057b7 30%, #00d4ff 70%);
+                color: white !important;
+                border: none;
+                transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+                box-shadow: 0 4px 18px rgba(0, 212, 255, 0.35);
+                text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+            }
 
-                .logo-container {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 1rem 0;
-                    margin-bottom: -1rem;
-                    perspective: 800px;
-                }
-                #interactive-logo-img {
-                    max-width: 250px;
-                    cursor: pointer;
-                    filter: none;
-                    transform: scale(1);
-                    transition: transform 0.4s ease-out, filter 0.4s ease-out;
-                }
-                .logo-container:hover #interactive-logo-img {
-                    filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
-                            drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
-                    transform: scale(1.1);
-                    transition: transform 0.05s linear, filter 0.4s ease-out;
-                }
-            </style>
-            """, unsafe_allow_html=True)
+            /* make sure the text inside also scales */
+            div[data-testid="stButton"] > button > div > p,
+            div[data-testid="stButton"] > button > span {
+                font-size: 1.3em !important;
+                font-weight: 800 !important;
+            }
+
+            div[data-testid="stButton"] > button:hover {
+                transform: scale(1.05);
+                box-shadow: 0 8px 28px rgba(0, 212, 255, 0.45);
+            }
+
+
+
+            .logo-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 1rem 0;
+                margin-bottom: -1rem;
+                perspective: 800px;
+            }
+            #interactive-logo-img {
+                max-width: 250px;
+                cursor: pointer;
+                filter: none;
+                transform: scale(1);
+                transition: transform 0.4s ease-out, filter 0.4s ease-out;
+            }
+            .logo-container:hover #interactive-logo-img {
+                filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
+                        drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
+                transform: scale(1.1);
+                transition: transform 0.05s linear, filter 0.4s ease-out;
+            }
+        </style>
+        """, unsafe_allow_html=True)
         
         # --- Page Content ---
         with st.container():
             try:
                 logo_path = "images/unnamed-removebg-preview.png"
                 logo_base64 = image_to_base64(logo_path)
-
                 _ , col2, _ = st.columns([1, 1, 1])
                 with col2:
                     st.markdown(f"""
@@ -764,7 +780,6 @@ def main():
                         <img id="interactive-logo-img" src="data:image/png;base64,{logo_base64}">
                     </div>
                     """, unsafe_allow_html=True)
-
             except FileNotFoundError:
                 _ , col2, _ = st.columns([1, 1, 1])
                 with col2:
@@ -786,7 +801,7 @@ def main():
             if lottie_json:
                 st_lottie(lottie_json, height=280, speed=1, quality="high")
 
-            # --- NEW: Team Details Section ---
+            # --- Team Section ---
             st.markdown("""
             <div style="
                 margin: 2em auto; 
@@ -816,6 +831,17 @@ def main():
             </div>
             """, unsafe_allow_html=True)
 
+            st.markdown("""
+            <div style="text-align:center; padding:2em 0; margin-top:2em;">
+                <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
+                <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("Launch Prediction Tool", use_container_width=True):
+                st.session_state.step = 1
+                st.rerun()
+
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -828,59 +854,32 @@ def main():
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
 
-            st.markdown("""
-            <div style="text-align:center; padding:2em 0; margin-top:2em;">
-                <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
-                <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button("🚀 Launch Prediction Tool", use_container_width=True):
-                st.session_state.step = 1
-                st.rerun()
-
-        st.markdown("""
-        <script>
-            function attachLogoAnimation() {
-                const logo = document.getElementById('interactive-logo-img');
-                const container = document.querySelector('.logo-container');
-
-                if (logo && container) {
-                    clearInterval(checkInterval);
-
-                    const maxRotation = 20;
-                    container.addEventListener('mousemove', (e) => {
-                        const rect = container.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const y = e.clientY - rect.top;
-                        const centerX = rect.width / 2;
-                        const centerY = rect.height / 2;
-                        const deltaX = x - centerX;
-                        const deltaY = y - centerY;
-
-                        const rotateY = (deltaX / centerX) * maxRotation;
-                        const rotateX = -(deltaY / centerY) * maxRotation;
-
-                        logo.style.transform = rotateX(${rotateX}deg) rotateY(${rotateY}deg);
-                    });
-
-                    container.addEventListener('mouseleave', () => {
-                        logo.style.transform = 'rotateX(0) rotateY(0)';
-                    });
-                }
-            }
-            const checkInterval = setInterval(attachLogoAnimation, 100);
-        </script>
-        """, unsafe_allow_html=True)
         return
     
-    with st.container():
-        col1, col2 = st.columns([1, 10])
-        with col1:
-            if st.button("🏠 Home"):
-                st.session_state.step = 0
-                for key in ["batch_input_df", "final_prediction_df"]:
-                    st.session_state.pop(key, None)
-                st.rerun()
+    # --- NEW: Clickable Header to go Home ---
+    try:
+        logo_base64 = image_to_base64("images/unnamed-removebg-preview.png")
+        st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;">
+            <a href="." target="_self" style="text-decoration: none;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
+                    <img src="data:image/png;base64,{logo_base64}" width="80">
+                    <h2 style="margin: 0; font-weight: 600; font-size: 2rem;">Shell.ai Hackathon</h2>
+                </div>
+            </a>
+            <div style="font-size: 2rem; font-weight: 400; color: #0072c6;">Team Locus</div>
+        </div>
+        """, unsafe_allow_html=True)
+    except FileNotFoundError:
+        # Fallback if logo is missing
+        st.markdown("""
+        <div style="display: flex; justify-content: flex-end; padding-bottom: 1rem;">
+            <div style="font-size: 1.1rem; font-weight: 600; color: #0072c6;">Team Locus</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🏠 Home"):
+            st.session_state.step = 0
+            st.rerun()
 
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV
@@ -892,11 +891,11 @@ def main():
             uploaded_file = st.file_uploader("Upload your CSV file:", type=["csv"])
             st.markdown(
             """
-            *Your CSV file must have:*
+            Your CSV file must have:
             - An ID column.
-            - *5* ComponentX_fraction columns (X in 1-5).
-            - *50* ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
-            - The component fractions for each row must sum to *1.0*.
+            - 5 ComponentX_fraction columns (X in 1-5).
+            - 50 ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
+            - The component fractions for each row must sum to 1.0.
             - 56 columns in total.
 
             Click 'Load Example Data' to see a working example.

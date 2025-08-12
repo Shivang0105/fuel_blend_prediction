@@ -640,7 +640,7 @@ def main():
     st.markdown("""
     <style>
         .block-container {
-            padding-top: 1rem !important;
+            padding-top: 0rem !important;
         }
                 
         /* Main app background with vibrant gradient patches on top & strong white fade on bottom center */
@@ -856,14 +856,30 @@ def main():
 
         return
     
-    with st.container():
-        col1, col2 = st.columns([1, 10])
-        with col1:
-            if st.button("🏠 Home"):
-                st.session_state.step = 0
-                for key in ["batch_input_df", "final_prediction_df"]:
-                    st.session_state.pop(key, None)
-                st.rerun()
+    # --- NEW: Clickable Header to go Home ---
+    try:
+        logo_base64 = image_to_base64("images/unnamed-removebg-preview.png")
+        st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;">
+            <a href="." target="_self" style="text-decoration: none;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
+                    <img src="data:image/png;base64,{logo_base64}" width="80">
+                    <h2 style="margin: 0; font-weight: 600; font-size: 2rem;">Shell.ai Hackathon</h2>
+                </div>
+            </a>
+            <div style="font-size: 2rem; font-weight: 400; color: #0072c6;">Team Locus</div>
+        </div>
+        """, unsafe_allow_html=True)
+    except FileNotFoundError:
+        # Fallback if logo is missing
+        st.markdown("""
+        <div style="display: flex; justify-content: flex-end; padding-bottom: 1rem;">
+            <div style="font-size: 1.1rem; font-weight: 600; color: #0072c6;">Team Locus</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🏠 Home"):
+            st.session_state.step = 0
+            st.rerun()
 
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV
@@ -877,8 +893,8 @@ def main():
             """
             *Your CSV file must have:*
             - An ID column.
-            - *5* ComponentX_fraction columns (X in 1-5).
-            - *50* ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
+            - *5* `ComponentX_fraction` columns (X in 1-5).
+            - *50* `ComponentX_PropertyY` columns(X in 1-5 and Y in 1-10).
             - The component fractions for each row must sum to *1.0*.
             - 56 columns in total.
 

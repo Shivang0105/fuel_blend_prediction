@@ -744,30 +744,29 @@ def main():
 
 
 
-            .logo-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 1rem 0;
-                margin-bottom: -1rem;
-                perspective: 800px;
-            }
-            #interactive-logo-img {
-                max-width: 250px;
-                cursor: pointer;
-                filter: none;
-                transform: scale(1);
-                transition: transform 0.4s ease-out, filter 0.4s ease-out;
-            }
-            .logo-container:hover #interactive-logo-img {
-                filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
-                        drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
-                transform: scale(1.1);
-                transition: transform 0.05s linear, filter 0.4s ease-out;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        
+                .logo-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 1rem 0;
+                    margin-bottom: -1rem;
+                    perspective: 800px;
+                }
+                #interactive-logo-img {
+                    max-width: 250px;
+                    cursor: pointer;
+                    filter: none;
+                    transform: scale(1);
+                    transition: transform 0.4s ease-out, filter 0.4s ease-out;
+                }
+                .logo-container:hover #interactive-logo-img {
+                    filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
+                            drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
+                    transform: scale(1.1);
+                    transition: transform 0.05s linear, filter 0.4s ease-out;
+                }
+            </style>
+            """, unsafe_allow_html=True)
         # --- Page Content ---
         with st.container():
             try:
@@ -801,7 +800,8 @@ def main():
             if lottie_json:
                 st_lottie(lottie_json, height=280, speed=1, quality="high")
 
-            # --- Team Section ---
+            # --- NEW: Team Details Section ---
+            st.markdown('<div class="section-header">Meet the Team</div>', unsafe_allow_html=True)
             st.markdown("""
             <div style="
                 margin: 2em auto; 
@@ -831,16 +831,6 @@ def main():
             </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("""
-            <div style="text-align:center; padding:2em 0; margin-top:2em;">
-                <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
-                <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            if st.button("Launch Prediction Tool", use_container_width=True):
-                st.session_state.step = 1
-                st.rerun()
 
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
@@ -881,6 +871,41 @@ def main():
             st.session_state.step = 0
             st.rerun()
 
+        st.markdown("""
+        <script>
+            function attachLogoAnimation() {
+                const logo = document.getElementById('interactive-logo-img');
+                const container = document.querySelector('.logo-container');
+
+                if (logo && container) {
+                    clearInterval(checkInterval);
+
+                    const maxRotation = 20;
+                    container.addEventListener('mousemove', (e) => {
+                        const rect = container.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const deltaX = x - centerX;
+                        const deltaY = y - centerY;
+
+                        const rotateY = (deltaX / centerX) * maxRotation;
+                        const rotateX = -(deltaY / centerY) * maxRotation;
+
+                        logo.style.transform = rotateX(${rotateX}deg) rotateY(${rotateY}deg);
+                    });
+
+                    container.addEventListener('mouseleave', () => {
+                        logo.style.transform = 'rotateX(0) rotateY(0)';
+                    });
+                }
+            }
+            const checkInterval = setInterval(attachLogoAnimation, 100);
+        </script>
+        """, unsafe_allow_html=True)
+        return
+
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV
     if st.session_state.step == 1:
@@ -889,19 +914,12 @@ def main():
         col1, col2 = st.columns([3, 1])
         with col1:
             uploaded_file = st.file_uploader("Upload your CSV file:", type=["csv"])
-            st.markdown(
-            """
-            *Your CSV file must have:*
-            - An ID column.
-            - *5* `ComponentX_fraction` columns (X in 1-5).
-            - *50* `ComponentX_PropertyY` columns(X in 1-5 and Y in 1-10).
-            - The component fractions for each row must sum to *1.0*.
-            - 56 columns in total.
-
-            Click 'Load Example Data' to see a working example.
-            """
-            )
-
+            with st.expander("❓ Not sure about the file format?"):
+                    st.info(
+                        "The CSV should contain an 'ID' column, 5 'ComponentX_fraction' columns, "
+                        "and 50 'ComponentX_PropertyY' columns. The component fractions for each row must sum to 1.0."
+                    )
+                    st.markdown("Click the Load Example Data button to see a working example.")
         with col2:
             # Remove <br>, add margin-top for vertical alignment
             st.markdown("<div style='margin-top: 40px;'>", unsafe_allow_html=True)

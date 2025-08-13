@@ -864,7 +864,7 @@ def main():
             <a href="." target="_self" style="text-decoration: none;">
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
                     <img src="data:image/png;base64,{logo_base64}" width="80">
-                    <h2 style="margin: 0; font-weight: 600; font-size: 2rem;">Shell.ai Hackathon</h2>
+                    <h2 style="margin: 0; font-weight: 600; font-size: 2rem;background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);background-size: 200% auto;color: #000;background-clip: text;-webkit-background-clip: text;-webkit-text-fill-color: transparent;animation: shine 4s linear infinite;">Shell.ai Hackathon</h2>
                 </div>
             </a>
             <div style="font-size: 2rem; font-weight: 400; color: #0072c6;">Team Locus</div>
@@ -1008,7 +1008,6 @@ def main():
                 except Exception as e:
                     st.error(f"❌ Error during prediction: {e}")
 
-    # STEP 3: Blend-Level Analysis
     elif st.session_state.step == 3:
         st.header("Step 3: Blend Analysis & Explainability")
 
@@ -1021,174 +1020,146 @@ def main():
 
         df = st.session_state.final_prediction_df
 
-        st.markdown(f"<h2>📊 Overall Dataset Analysis</h2>", unsafe_allow_html=True)
-        st.markdown(
-            "This shows how component fractions are distributed across the entire uploaded batch, "
-            "helping you spot overall trends and distributions."
+        # Selector for section
+        section_choice = st.radio(
+            "Choose what to explore:",
+            ("📊 Overall Dataset Analysis", "🔬 Single Blend Deep Dive"),
+            horizontal=True
         )
 
-        numeric_df = df.select_dtypes(include='number')
-        fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
-
-        if fraction_cols:
-            melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
-            fig_box = px.box(
-                melted_frac, x="Component", y="Fraction", points="all", color="Component",
-                title="📦 Distribution of Component Fractions Across All Uploaded Blends",
-                template="plotly_white"
+        # ===================== 📊 Overall Dataset Analysis =====================
+        if section_choice == "📊 Overall Dataset Analysis":
+            st.markdown(
+                "This shows how component fractions are distributed across the entire uploaded batch, "
+                "helping you spot overall trends and distributions."
             )
-            fig_box.update_layout(
-                height=400,
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                showlegend=False,
-                font=dict(color="#222222")
-            )
-            st.plotly_chart(fig_box, use_container_width=True)
 
-        st.markdown("---")
+            numeric_df = df.select_dtypes(include='number')
+            fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
 
-        st.markdown(f"<h2>🔬 Single Blend Deep Dive</h2>", unsafe_allow_html=True)
-        st.markdown("Select a single blend from your data to inspect its composition, understand its prediction, and run 'what-if' scenarios.")
+            if fraction_cols:
+                melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
+                fig_box = px.box(
+                    melted_frac, x="Component", y="Fraction", points="all", color="Component",
+                    title="📦 Distribution of Component Fractions Across All Uploaded Blends",
+                    template="plotly_white"
+                )
+                fig_box.update_layout(
+                    height=400,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False,
+                    font=dict(color="#222222")
+                )
+                st.plotly_chart(fig_box, use_container_width=True)
 
-        selected_id = st.selectbox("Select a Blend ID to analyze:", df["ID"].unique())
-        row_data = df[df["ID"] == selected_id]
+        # ===================== 🔬 Single Blend Deep Dive =====================
+        elif section_choice == "🔬 Single Blend Deep Dive":
+            st.markdown("Select a single blend from your data to inspect its composition, "
+                        "understand its prediction, and run 'what-if' scenarios.")
 
-        st.subheader("📋 Selected Row Composition")
-        st.dataframe(row_data, use_container_width=True, height=80)
+            selected_id = st.selectbox("Select a Blend ID to analyze:", df["ID"].unique())
+            row_data = df[df["ID"] == selected_id]
 
-        # --- Side-By-Side Radar Charts with Alignment ---
-        st.subheader("📡 Blend Composition Radars")
+            st.subheader("📋 Selected Row Composition")
+            st.dataframe(row_data, use_container_width=True, height=80)
 
-        # --- CONTROLS MOVED ABOVE COLUMNS FOR ALIGNMENT ---
-        comp_to_show = 1
+            # --- Radar Charts ---
+            st.subheader("📡 Blend Composition Radars")
+            comp_to_show = 1
 
-        col1, col2 = st.columns(2)
-        with col1:
-            # Radar Chart 1: Component Fractions
-            components = [f"Component {i}" for i in range(1, 6)]
-            frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
-            fractions = [row_data.iloc[0][comp] for comp in frac_cols]
+            col1, col2 = st.columns(2)
+            with col1:
+                components = [f"Component {i}" for i in range(1, 6)]
+                frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
+                fractions = [row_data.iloc[0][comp] for comp in frac_cols]
 
-            fig_radar_frac = go.Figure()
-            fig_radar_frac.add_trace(go.Scatterpolar(
-                r=fractions + fractions[:1],
-                theta=components + [components[0]],
-                mode='lines', fill='toself', name='Fractions',
-                line=dict(color="#0072c6"), # Blue
-                fillcolor='rgba(0, 114, 198, 0.4)'
-            ))
-            fig_radar_frac.update_layout(
-                polar=dict(
-                    radialaxis=dict(visible=True, range=[0, 1], gridcolor='#DDDDDD'),
-                    angularaxis=dict(tickfont=dict(size=12), rotation=90),
-                    bgcolor='rgba(255, 255, 255, 0.5)'
-                ),
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="#000000"), showlegend=False, height=400,
-                title=dict(text="Component Fractions")
-            )
-            st.plotly_chart(fig_radar_frac, use_container_width=True)
+                fig_radar_frac = go.Figure()
+                fig_radar_frac.add_trace(go.Scatterpolar(
+                    r=fractions + fractions[:1],
+                    theta=components + [components[0]],
+                    mode='lines', fill='toself',
+                    line=dict(color="#0072c6"),
+                    fillcolor='rgba(0, 114, 198, 0.4)'
+                ))
+                fig_radar_frac.update_layout(
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+                    height=400, showlegend=False
+                )
+                st.plotly_chart(fig_radar_frac, use_container_width=True)
 
-        with col2:
-            # Radar Chart 2: Component Properties
-            prop_labels = [f"Prop {i}" for i in range(1, 11)]
-            prop_cols = [f"Component{comp_to_show}_Property{i}" for i in range(1, 11)]
-            prop_values = row_data.iloc[0][prop_cols].values.tolist()
+            with col2:
+                prop_labels = [f"Prop {i}" for i in range(1, 11)]
+                prop_cols = [f"Component{comp_to_show}_Property{i}" for i in range(1, 11)]
+                prop_values = row_data.iloc[0][prop_cols].values.tolist()
 
-            fig_radar_props = go.Figure()
-            fig_radar_props.add_trace(go.Scatterpolar(
-                r=prop_values + prop_values[:1],
-                theta=prop_labels + [prop_labels[0]],
-                mode='lines', fill='toself', name='Properties',
-                line=dict(color="#28a745"), # Green
-                fillcolor='rgba(40, 167, 69, 0.4)'
-            ))
-            fig_radar_props.update_layout(
-                polar=dict(
-                    radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
-                    angularaxis=dict(tickfont=dict(size=12)),
-                    bgcolor='rgba(255, 255, 255, 0.5)'
-                ),
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color="#000000"), showlegend=False, height=400,
-                title=dict(text=f"Properties for Component {comp_to_show}")
-            )
-            st.plotly_chart(fig_radar_props, use_container_width=True)
+                fig_radar_props = go.Figure()
+                fig_radar_props.add_trace(go.Scatterpolar(
+                    r=prop_values + prop_values[:1],
+                    theta=prop_labels + [prop_labels[0]],
+                    mode='lines', fill='toself',
+                    line=dict(color="#28a745"),
+                    fillcolor='rgba(40, 167, 69, 0.4)'
+                ))
+                fig_radar_props.update_layout(
+                    polar=dict(radialaxis=dict(visible=True)),
+                    height=400, showlegend=False
+                )
+                st.plotly_chart(fig_radar_props, use_container_width=True)
 
-        st.markdown("<br>", unsafe_allow_html=True) # Add some space
-        # --- End of radar section ---
-
-        st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
-        with st.expander("How does this work?"):
-            st.info(
-            "This section explains why the model made its prediction. Choose a property and a plot type to see "
-            "which features had the biggest impact."
-            )
-        col1, col2 = st.columns(2)
-        with col1:
+            # --- SHAP Explainability ---
+            st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
             property_to_explain = st.selectbox(
                 "Select a Blend Property to explain:",
-                [f"BlendProperty{i}" for i in range(1, 11)],
-                key="shap_property_selector"
+                [f"BlendProperty{i}" for i in range(1, 11)]
             )
-        with col2:
             plot_type = st.selectbox(
                 "Select a plot type:",
-                [ "Force Plot","Waterfall", "Decision Plot"],
-                key="shap_plot_selector"
+                ["Force Plot", "Waterfall", "Decision Plot"]
             )
 
-        if property_to_explain:
-            with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
-                if plot_type == "Waterfall":
-                    generate_shap_waterfall_plot(row_data, property_to_explain, assets)
-                elif plot_type == "Decision Plot":
-                    generate_shap_decision_plot(row_data, property_to_explain, assets)
-                elif plot_type == "Force Plot":
-                    generate_shap_force_plot(row_data, property_to_explain, assets)
+            if property_to_explain:
+                with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
+                    if plot_type == "Waterfall":
+                        generate_shap_waterfall_plot(row_data, property_to_explain, assets)
+                    elif plot_type == "Decision Plot":
+                        generate_shap_decision_plot(row_data, property_to_explain, assets)
+                    elif plot_type == "Force Plot":
+                        generate_shap_force_plot(row_data, property_to_explain, assets)
 
-        st.markdown("<h3>🔬 Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
-        with st.expander("How does this work?"):
-            st.info(
-                """
-                This tool helps you play 'what-if'. Select a component to vary its fraction from 0% to 100%.
-                The model then re-calculates all 10 blend properties at each step, showing you how sensitive they are to changes in that single component.
-                """
+            # --- Sensitivity Analysis ---
+            st.markdown("<h3>🔬 Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
+            component_to_vary = st.selectbox(
+                "Select Component to Vary", [1, 2, 3, 4, 5],
+                format_func=lambda x: f"Component {x}"
             )
 
-        component_to_vary = st.selectbox("Select Component to Vary", [1, 2, 3, 4, 5], format_func=lambda x: f"Component {x}")
+            if st.button("Run Sensitivity Analysis", use_container_width=True):
+                blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
+                tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
+                progress_bar = st.progress(0)
 
-        if st.button("Run Sensitivity Analysis", use_container_width=True):
-            blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
-            tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
-            progress_bar = st.progress(0, text="🚀 Launching parallel prediction threads...")
+                results = []
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    futures = {executor.submit(worker, args): i for i, args in enumerate(tasks)}
+                    for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                        prop, analysis_df = future.result()
+                        results.append((prop, analysis_df))
+                        progress_bar.progress((i + 1) / len(tasks))
 
-            results = []
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                futures = {executor.submit(worker, args): i for i, args in enumerate(tasks)}
-                for i, future in enumerate(concurrent.futures.as_completed(futures)):
-                    prop, analysis_df = future.result()
-                    results.append((prop, analysis_df))
-                    progress_bar.progress((i + 1) / len(tasks), text=f"✅ Completed {prop}...")
+                fig_sensitivity = go.Figure()
+                for prop, analysis_df in sorted(results, key=lambda x: int(x[0].replace("BlendProperty", ""))):
+                    fig_sensitivity.add_trace(go.Scatter(
+                        x=analysis_df['varied_fraction'],
+                        y=analysis_df['predicted_value'].astype(float),
+                        mode='lines+markers', name=prop
+                    ))
+                fig_sensitivity.update_layout(
+                    title=f"Sensitivity Analysis: Varying Component {component_to_vary}",
+                    template="plotly_white"
+                )
+                st.plotly_chart(fig_sensitivity, use_container_width=True)
 
-            progress_bar.empty()
-
-            fig_sensitivity = go.Figure()
-            for prop, analysis_df in sorted(results, key=lambda x: int(x[0].replace("BlendProperty", ""))):
-                fig_sensitivity.add_trace(go.Scatter(
-                    x=analysis_df['varied_fraction'],
-                    y=analysis_df['predicted_value'].astype(float),
-                    mode='lines+markers', name=prop
-                ))
-
-            fig_sensitivity.update_layout(
-                title=f"Sensitivity Analysis: Varying Component {component_to_vary}",
-                xaxis_title=f"Fraction of Component {component_to_vary}",
-                yaxis_title="Predicted Value", template="plotly_white", height=600,
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-            )
-            st.plotly_chart(fig_sensitivity, use_container_width=True)
 
 if __name__ == "__main__":
     main()

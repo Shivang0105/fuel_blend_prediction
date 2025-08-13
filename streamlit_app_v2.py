@@ -758,10 +758,12 @@ def main():
                 filter: none;
                 transform: scale(1);
                 transition: transform 0.4s ease-out, filter 0.4s ease-out;
+                filter: brightness(0.95) drop-shadow(4px 6px 8px rgba(0, 0, 0, 0.4));
             }
             .logo-container:hover #interactive-logo-img {
                 transform: scale(1.1);
                 transition: transform 0.05s linear, filter 0.4s ease-out;
+                filter: brightness(0.95) drop-shadow(6px 8px 12px rgba(0, 0, 0, 0.5));
             }
         </style>
         """, unsafe_allow_html=True)
@@ -769,7 +771,7 @@ def main():
         # --- Page Content ---
         with st.container():
             try:
-                logo_path = "images/unnamed-removebg-preview.png"
+                logo_path = "images/ChatGPT Image Aug 13, 2025, 04_28_27 PM.png"
                 logo_base64 = image_to_base64(logo_path)
                 _ , col2, _ = st.columns([1, 1, 1])
                 with col2:
@@ -856,9 +858,9 @@ def main():
     
     # --- NEW: Clickable Header to go Home ---
     try:
-        logo_base64 = image_to_base64("images/unnamed-removebg-preview.png")
+        logo_base64 = image_to_base64("images/ChatGPT Image Aug 13, 2025, 04_28_27 PM.png")
         st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;filter: brightness(0.95)">
             <a href="." target="_self" style="text-decoration: none;">
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
                     <img src="data:image/png;base64,{logo_base64}" width="80">
@@ -1039,7 +1041,8 @@ def main():
                 height=400,
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                showlegend=False
+                showlegend=False,
+                font=dict(color="#222222")
             )
             st.plotly_chart(fig_box, use_container_width=True)
 

@@ -477,7 +477,7 @@ def render_flow_block(title, subtitle, detail, color, icon="💡", width="300px"
     # --- UPDATED TEXT COLORS TO BLUE ---
     title_color = "#005A9C"      # Dark Blue
     subtitle_color = "#0072c6"   # Standard Blue
-    detail_color = "#4DA8DA"     # Light Blue
+    detail_color = "#32779C"     # Light Blue
 
     st.markdown(f"""
     <div class="{block_id}">
@@ -821,8 +821,6 @@ def main():
                 transition: transform 0.4s ease-out, filter 0.4s ease-out;
             }
             .logo-container:hover #interactive-logo-img {
-                filter: drop-shadow(-8px 0 6px rgba(59, 130, 246, 0.7))
-                        drop-shadow(8px 0 6px rgba(74, 222, 128, 0.7));
                 transform: scale(1.1);
                 transition: transform 0.05s linear, filter 0.4s ease-out;
             }

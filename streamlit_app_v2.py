@@ -631,6 +631,65 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
+def display_footer():
+    """
+    Compact, full-bleed footer that matches the app theme,
+    avoids horizontal scroll, and sits at the bottom (not fixed).
+    """
+    footer_css = """
+    <style>
+      /* Let the page push the footer to the bottom on short pages */
+      .block-container {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          padding-bottom: 0 !important; /* remove extra bottom padding */
+      }
+      .flex-spacer { 
+          flex: 1 0 auto; 
+          min-height: 8rem; /* Add this line for a minimum space */
+      }
+
+      /* Kill the tiny horizontal scrollbar that full-bleed sections can cause */
+      html, body, .stApp { overflow-x: hidden; }
+
+      /* Full-bleed footer background (breaks out of Streamlit's centered layout) */
+      .footer-bleed {
+          position: relative;
+          margin-left: calc(50% - 50vw);
+          margin-right: calc(50% - 50vw);
+          width: 99.5vw;
+          border-top: 1px solid rgba(17,24,39,0.08);
+          /* Match the app’s pastel theme with a soft white veil for contrast */
+          background:
+              linear-gradient(90deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65)),
+              linear-gradient(90deg, #f7b0c8 0%, #b9e6ff 100%);
+          box-shadow: 0 -1px 0 rgba(0,0,0,0.04) inset;
+      }
+
+      /* Keep text area compact and centered */
+      .footer-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0.5rem 1rem;      /* compact height */
+          text-align: center;
+          font-size: 0.82rem;         /* smaller text */
+          color: #0f172a;             /* dark slate for readability */
+          line-height: 1.2;
+      }
+    </style>
+    """
+    footer_html = """
+    <div class="flex-spacer"></div>
+    <footer class="footer-bleed">
+      <div class="footer-inner">
+        © 2025 Locus · All Rights Reserved · Made with love and lots of coffee ☕ ;)
+      </div>
+    </footer>
+    """
+    st.markdown(footer_css, unsafe_allow_html=True)
+    st.markdown(footer_html, unsafe_allow_html=True)
+
 # --- 3. Main Application ---
 def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
@@ -742,8 +801,6 @@ def main():
                 box-shadow: 0 8px 28px rgba(0, 212, 255, 0.45);
             }
 
-
-
             .logo-container {
                 display: flex;
                 justify-content: center;
@@ -854,6 +911,7 @@ def main():
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
 
+        display_footer()
         return
     
     # --- NEW: Clickable Header to go Home ---
@@ -1189,6 +1247,8 @@ def main():
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig_sensitivity, use_container_width=True)
+        
+    display_footer()
 
 if __name__ == "__main__":
     main()

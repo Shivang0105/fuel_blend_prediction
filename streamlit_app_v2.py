@@ -636,6 +636,11 @@ def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
     st_javascript("window.scrollTo(0, 0);")
 
+    try:
+        shell_logo_base64 = image_to_base64("images/your_shell_logo.png") # 👈 Update this path
+    except FileNotFoundError:
+        shell_logo_base64 = None
+        
     # --- ✨ NEW: Patched Gradient Background Theme ---
     st.markdown("""
     <style>

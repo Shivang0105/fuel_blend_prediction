@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 import shap
 import matplotlib.pyplot as plt
-
+from st_aggrid import AgGrid, GridOptionsBuilder
 # --- 1. Backend & Logic Functions ---
 # This section contains the real logic to load and run your models.
 def generate_global_shap_summary(df, property_to_explain, assets):
@@ -1027,44 +1027,83 @@ def main():
                 st.rerun()
         else:
             df = st.session_state.batch_input_df
-            with st.spinner("🔄 Running batch predictions..."):
-                try:
-                    predictions = predict_properties(df, assets)
-                    pred_df = pd.DataFrame(predictions, columns=[f"BlendProperty{i}" for i in range(1, 11)])
-                    final_df = pd.concat([df.reset_index(drop=True), pred_df], axis=1)
-                    st.session_state.final_prediction_df = final_df
 
-                    st.subheader("📊 Prediction Results")
+            # ✅ Run predictions only once
+            if "final_prediction_df" not in st.session_state:
+                with st.spinner("🔄 Running batch predictions..."):
+                    try:
+                        predictions = predict_properties(df, assets)
+                        pred_df = pd.DataFrame(
+                            predictions, 
+                            columns=[f"BlendProperty{i}" for i in range(1, 11)]
+                        )
+                        final_df = pd.concat([df.reset_index(drop=True), pred_df], axis=1)
+                        st.session_state.final_prediction_df = final_df
+                    except Exception as e:
+                        st.error(f"❌ Error during prediction: {e}")
+                        st.stop()
 
-                    cols_to_display = ["ID"] + [f"BlendProperty{i}" for i in range(1, 11)]
-                    st.dataframe(final_df[cols_to_display].style.format("{:.4f}"), use_container_width=True)
-                    st.markdown("---")
+            final_df = st.session_state.final_prediction_df
 
-                    # --- SIMPLIFIED DOWNLOAD BUTTON ---
-                    csv_to_download = final_df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                       label="📥 Download Full Results CSV",
-                       data=csv_to_download,
-                       file_name="blend_predictions_output.csv",
-                       mime="text/csv",
-                       use_container_width=True,
-                       key="download_full_csv"
-                    )
-                    st.markdown("---")
+            st.subheader("📊 Prediction Results")
 
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("⬅ Upload Another File", use_container_width=True):
-                            for key in ["batch_input_df", "final_prediction_df"]:
-                                st.session_state.pop(key, None)
-                            st.session_state.step = 1
-                            st.rerun()
-                    with col2:
-                        if st.button("➡ Go to Analysis",use_container_width=True):
-                            st.session_state.step = 3
-                            st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Error during prediction: {e}")
+            # --- AGGRID TABLE ---
+            cols_to_display = ["ID"] + [f"BlendProperty{i}" for i in range(1, 11)]
+            display_df = final_df[cols_to_display]
+
+            gb = GridOptionsBuilder.from_dataframe(display_df)
+            gb.configure_default_column(
+                filter=True,
+                sortable=True,
+                resizable=True
+            )
+
+            # ✅ Explicitly ensure sorting is on for all columns
+            for col in display_df.columns:
+                gb.configure_column(col, sortable=True)
+
+            # gb.configure_pagination(paginationAutoPageSize=True)
+            gb.configure_side_bar()
+            grid_options = gb.build()
+            grid_options['defaultColDef']['sortable'] = True  # Double ensure sorting works
+            grid_options['multiSortKey'] = 'ctrl'  # Enable multi-column sorting
+            grid_options['rowHoverHighlight'] = True
+            grid_options["floatingFilter"] = True
+
+            grid_response = AgGrid(
+                display_df,
+                gridOptions=grid_options,
+                enable_enterprise_modules=False,
+                fit_columns_on_grid_load=True,
+                theme="streamlit",
+                update_mode="MODEL_CHANGED",
+                allow_unsafe_jscode=True
+            )
+
+            # --- DOWNLOAD (MATCHES FILTERED VIEW) ---
+            filtered_df = pd.DataFrame(grid_response["data"])
+            csv_to_download = filtered_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="📥 Download Filtered Results CSV",
+                data=csv_to_download,
+                file_name="blend_predictions_output.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_full_csv",
+            )
+
+            st.markdown("---")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("⬅ Upload Another File", use_container_width=True):
+                    for key in ["batch_input_df", "final_prediction_df"]:
+                        st.session_state.pop(key, None)
+                    st.session_state.step = 1
+                    st.rerun()
+            with col2:
+                if st.button("➡ Go to Analysis", use_container_width=True):
+                    st.session_state.step = 3
+                    st.rerun()
 
     elif st.session_state.step == 3:
             st.header("Step 3: Blend Analysis & Explainability")

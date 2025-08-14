@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 from st_aggrid import AgGrid, GridOptionsBuilder
 import pandas as pd
 import plotly.graph_objects as go
+from streamlit.components.v1 import html
+from streamlit_js_eval import streamlit_js_eval
 # --- 1. Backend & Logic Functions ---
 # This section contains the real logic to load and run your models.
 def generate_global_shap_summary(df, property_to_explain, assets):
@@ -685,13 +687,24 @@ def display_footer():
     <div class="flex-spacer"></div>
     <footer class="footer-bleed">
       <div class="footer-inner">
-        © 2025 Locus · All Rights Reserved · Made by non developers with lots of coffee ☕ :D
+        © 2025 Locus · Predicting fuel properties. Powered by coffee properties. ☕
       </div>
     </footer>
     """
     st.markdown(footer_css, unsafe_allow_html=True)
     st.markdown(footer_html, unsafe_allow_html=True)
-
+def nav_to_top():
+    """Injects JavaScript to scroll the window to the top."""
+    js = """
+    <script>
+        // Set a timeout to run after the page has finished rendering
+        setTimeout(function() {
+            // Target the main window and scroll to the top
+            window.parent.scrollTo(0, 0);
+        }, 0);
+    </script>
+    """
+    html(js, height=0)
 # --- 3. Main Application ---
 def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
@@ -899,6 +912,7 @@ def main():
 
             if st.button("Launch Prediction Tool", use_container_width=True):
                 st.session_state.step = 1
+                streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
                 st.rerun()
 
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
@@ -923,7 +937,7 @@ def main():
         <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;filter: brightness(0.95)">
             <a href="." target="_self" style="text-decoration: none;">
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
-                    <img src="data:image/png;base64,{logo_base64}" width="80">
+                    <img style="filter: brightness(0.95) drop-shadow(4px 6px 8px rgba(0, 0, 0, 0.4));"src="data:image/png;base64,{logo_base64}" width="80">
                     <h2 style="margin: 0; font-weight: 600; font-size: 2rem;background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);background-size: 200% auto;color: #000;background-clip: text;-webkit-background-clip: text;-webkit-text-fill-color: transparent;animation: shine 4s linear infinite;">Shell.ai Hackathon</h2>
                 </div>
             </a>
@@ -1017,7 +1031,9 @@ def main():
 
             if st.button("➡ Predict", use_container_width=True, disabled=not is_valid):
                 st.session_state.step = 2
+                streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
                 st.rerun()
+        display_footer()
     # STEP 2: Predict
     elif st.session_state.step == 2:
         st.header("Step 2: Prediction Results")
@@ -1108,7 +1124,7 @@ def main():
                 if st.button("➡ Go to Analysis", use_container_width=True):
                     st.session_state.step = 3
                     st.rerun()
-
+        display_footer()
     elif st.session_state.step == 3:
         st.header("Step 3: Blend Analysis & Explainability")
 
@@ -1189,6 +1205,10 @@ def main():
             blend_props = [f"BlendProperty{i}" for i in range(1, 11) if f"BlendProperty{i}" in numeric_df.columns]
             if blend_props:
                 melted_props = numeric_df[blend_props].melt(var_name="Property", value_name="Value")
+                original_labels = melted_props['Property'].unique()
+                # Create the new, short labels
+                new_labels = [label.replace('BlendProperty', 'BlendProp') for label in original_labels]
+
 
                 # Boxplot for 10 BlendProperties
                 fig_props = px.box(
@@ -1206,6 +1226,15 @@ def main():
                     plot_bgcolor='rgba(0,0,0,0)',
                     showlegend=False,
                     font=dict(color="#222222")
+                )
+                original_labels = melted_props['Property'].unique()
+                # Create the new, short labels
+                new_labels = [label.replace('BlendProperty', 'BlendProp') for label in original_labels]
+
+                # Update the x-axis to use the new labels
+                fig_props.update_xaxes(
+                    tickvals=original_labels,
+                    ticktext=new_labels
                 )
                 st.plotly_chart(fig_props, use_container_width=True)
             if blend_props:
@@ -1379,7 +1408,7 @@ def main():
                     st.session_state.pop(key, None)
                 st.session_state.step = 1
                 st.rerun()
-
+        display_footer()
 
 if __name__ == "__main__":
     main()

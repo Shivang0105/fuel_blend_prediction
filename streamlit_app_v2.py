@@ -631,6 +631,65 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
+def display_footer():
+    """
+    Compact, full-bleed footer that matches the app theme,
+    avoids horizontal scroll, and sits at the bottom (not fixed).
+    """
+    footer_css = """
+    <style>
+      /* Let the page push the footer to the bottom on short pages */
+      .block-container {
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          padding-bottom: 0 !important; /* remove extra bottom padding */
+      }
+      .flex-spacer { 
+          flex: 1 0 auto; 
+          min-height: 8rem; /* Add this line for a minimum space */
+      }
+
+      /* Kill the tiny horizontal scrollbar that full-bleed sections can cause */
+      html, body, .stApp { overflow-x: hidden; }
+
+      /* Full-bleed footer background (breaks out of Streamlit's centered layout) */
+      .footer-bleed {
+          position: relative;
+          margin-left: calc(50% - 50vw);
+          margin-right: calc(50% - 50vw);
+          width: 99.5vw;
+          border-top: 1px solid rgba(17,24,39,0.08);
+          /* Match the app’s pastel theme with a soft white veil for contrast */
+          background:
+              linear-gradient(90deg, rgba(255,255,255,0.65), rgba(255,255,255,0.65)),
+              linear-gradient(90deg, #f7b0c8 0%, #b9e6ff 100%);
+          box-shadow: 0 -1px 0 rgba(0,0,0,0.04) inset;
+      }
+
+      /* Keep text area compact and centered */
+      .footer-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0.5rem 1rem;      /* compact height */
+          text-align: center;
+          font-size: 0.82rem;         /* smaller text */
+          color: #0f172a;             /* dark slate for readability */
+          line-height: 1.2;
+      }
+    </style>
+    """
+    footer_html = """
+    <div class="flex-spacer"></div>
+    <footer class="footer-bleed">
+      <div class="footer-inner">
+        © 2025 Locus · All Rights Reserved · Made with love and lots of coffee ☕ ;)
+      </div>
+    </footer>
+    """
+    st.markdown(footer_css, unsafe_allow_html=True)
+    st.markdown(footer_html, unsafe_allow_html=True)
+
 # --- 3. Main Application ---
 def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
@@ -742,8 +801,6 @@ def main():
                 box-shadow: 0 8px 28px rgba(0, 212, 255, 0.45);
             }
 
-
-
             .logo-container {
                 display: flex;
                 justify-content: center;
@@ -854,6 +911,7 @@ def main():
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
 
+        display_footer()
         return
     
     # --- NEW: Clickable Header to go Home ---
@@ -1009,26 +1067,18 @@ def main():
                     st.error(f"❌ Error during prediction: {e}")
 
     elif st.session_state.step == 3:
-        st.header("Step 3: Blend Analysis & Explainability")
+            st.header("Step 3: Blend Analysis & Explainability")
 
-        if "final_prediction_df" not in st.session_state:
-            st.warning("⚠ No prediction data available. Please go back to Step 2.")
-            if st.button("⬅ Back to Prediction Results"):
-                st.session_state.step = 2
-                st.rerun()
-            return
+            if "final_prediction_df" not in st.session_state:
+                st.warning("⚠ No prediction data available. Please go back to Step 2.")
+                if st.button("⬅ Back to Prediction Results"):
+                    st.session_state.step = 2
+                    st.rerun()
+                return
 
-        df = st.session_state.final_prediction_df
+            df = st.session_state.final_prediction_df
 
-        # Selector for section
-        section_choice = st.radio(
-            "Choose what to explore:",
-            ("📊 Overall Dataset Analysis", "🔬 Single Blend Deep Dive"),
-            horizontal=True
-        )
-
-        # ===================== 📊 Overall Dataset Analysis =====================
-        if section_choice == "📊 Overall Dataset Analysis":
+            st.markdown(f"<h2>📊 Overall Dataset Analysis</h2>", unsafe_allow_html=True)
             st.markdown(
                 "This shows how component fractions are distributed across the entire uploaded batch, "
                 "helping you spot overall trends and distributions."
@@ -1053,10 +1103,10 @@ def main():
                 )
                 st.plotly_chart(fig_box, use_container_width=True)
 
-        # ===================== 🔬 Single Blend Deep Dive =====================
-        elif section_choice == "🔬 Single Blend Deep Dive":
-            st.markdown("Select a single blend from your data to inspect its composition, "
-                        "understand its prediction, and run 'what-if' scenarios.")
+            st.markdown("---")
+
+            st.markdown(f"<h2>🔬 Single Blend Deep Dive</h2>", unsafe_allow_html=True)
+            st.markdown("Select a single blend from your data to inspect its composition, understand its prediction, and run 'what-if' scenarios.")
 
             selected_id = st.selectbox("Select a Blend ID to analyze:", df["ID"].unique())
             row_data = df[df["ID"] == selected_id]
@@ -1064,12 +1114,15 @@ def main():
             st.subheader("📋 Selected Row Composition")
             st.dataframe(row_data, use_container_width=True, height=80)
 
-            # --- Radar Charts ---
+            # --- Side-By-Side Radar Charts with Alignment ---
             st.subheader("📡 Blend Composition Radars")
+
+            # --- CONTROLS MOVED ABOVE COLUMNS FOR ALIGNMENT ---
             comp_to_show = 1
 
             col1, col2 = st.columns(2)
             with col1:
+                # Radar Chart 1: Component Fractions
                 components = [f"Component {i}" for i in range(1, 6)]
                 frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
                 fractions = [row_data.iloc[0][comp] for comp in frac_cols]
@@ -1078,17 +1131,24 @@ def main():
                 fig_radar_frac.add_trace(go.Scatterpolar(
                     r=fractions + fractions[:1],
                     theta=components + [components[0]],
-                    mode='lines', fill='toself',
-                    line=dict(color="#0072c6"),
+                    mode='lines', fill='toself', name='Fractions',
+                    line=dict(color="#0072c6"), # Blue
                     fillcolor='rgba(0, 114, 198, 0.4)'
                 ))
                 fig_radar_frac.update_layout(
-                    polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-                    height=400, showlegend=False
+                    polar=dict(
+                        radialaxis=dict(visible=True, range=[0, 1], gridcolor='#DDDDDD'),
+                        angularaxis=dict(tickfont=dict(size=12), rotation=90),
+                        bgcolor='rgba(255, 255, 255, 0.5)'
+                    ),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color="#000000"), showlegend=False, height=400,
+                    title=dict(text="Component Fractions")
                 )
                 st.plotly_chart(fig_radar_frac, use_container_width=True)
 
             with col2:
+                # Radar Chart 2: Component Properties
                 prop_labels = [f"Prop {i}" for i in range(1, 11)]
                 prop_cols = [f"Component{comp_to_show}_Property{i}" for i in range(1, 11)]
                 prop_values = row_data.iloc[0][prop_cols].values.tolist()
@@ -1097,26 +1157,44 @@ def main():
                 fig_radar_props.add_trace(go.Scatterpolar(
                     r=prop_values + prop_values[:1],
                     theta=prop_labels + [prop_labels[0]],
-                    mode='lines', fill='toself',
-                    line=dict(color="#28a745"),
+                    mode='lines', fill='toself', name='Properties',
+                    line=dict(color="#28a745"), # Green
                     fillcolor='rgba(40, 167, 69, 0.4)'
                 ))
                 fig_radar_props.update_layout(
-                    polar=dict(radialaxis=dict(visible=True)),
-                    height=400, showlegend=False
+                    polar=dict(
+                        radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
+                        angularaxis=dict(tickfont=dict(size=12)),
+                        bgcolor='rgba(255, 255, 255, 0.5)'
+                    ),
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color="#000000"), showlegend=False, height=400,
+                    title=dict(text=f"Properties for Component {comp_to_show}")
                 )
                 st.plotly_chart(fig_radar_props, use_container_width=True)
 
-            # --- SHAP Explainability ---
+            st.markdown("<br>", unsafe_allow_html=True) # Add some space
+            # --- End of radar section ---
+
             st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
-            property_to_explain = st.selectbox(
-                "Select a Blend Property to explain:",
-                [f"BlendProperty{i}" for i in range(1, 11)]
-            )
-            plot_type = st.selectbox(
-                "Select a plot type:",
-                ["Force Plot", "Waterfall", "Decision Plot"]
-            )
+            with st.expander("How does this work?"):
+                st.info(
+                "This section explains why the model made its prediction. Choose a property and a plot type to see "
+                "which features had the biggest impact."
+                )
+            col1, col2 = st.columns(2)
+            with col1:
+                property_to_explain = st.selectbox(
+                    "Select a Blend Property to explain:",
+                    [f"BlendProperty{i}" for i in range(1, 11)],
+                    key="shap_property_selector"
+                )
+            with col2:
+                plot_type = st.selectbox(
+                    "Select a plot type:",
+                    [ "Force Plot","Waterfall", "Decision Plot"],
+                    key="shap_plot_selector"
+                )
 
             if property_to_explain:
                 with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
@@ -1127,17 +1205,21 @@ def main():
                     elif plot_type == "Force Plot":
                         generate_shap_force_plot(row_data, property_to_explain, assets)
 
-            # --- Sensitivity Analysis ---
             st.markdown("<h3>🔬 Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
-            component_to_vary = st.selectbox(
-                "Select Component to Vary", [1, 2, 3, 4, 5],
-                format_func=lambda x: f"Component {x}"
-            )
+            with st.expander("How does this work?"):
+                st.info(
+                    """
+                    This tool helps you play 'what-if'. Select a component to vary its fraction from 0% to 100%.
+                    The model then re-calculates all 10 blend properties at each step, showing you how sensitive they are to changes in that single component.
+                    """
+                )
+
+            component_to_vary = st.selectbox("Select Component to Vary", [1, 2, 3, 4, 5], format_func=lambda x: f"Component {x}")
 
             if st.button("Run Sensitivity Analysis", use_container_width=True):
                 blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
                 tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
-                progress_bar = st.progress(0)
+                progress_bar = st.progress(0, text="🚀 Launching parallel prediction threads...")
 
                 results = []
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -1145,7 +1227,9 @@ def main():
                     for i, future in enumerate(concurrent.futures.as_completed(futures)):
                         prop, analysis_df = future.result()
                         results.append((prop, analysis_df))
-                        progress_bar.progress((i + 1) / len(tasks))
+                        progress_bar.progress((i + 1) / len(tasks), text=f"✅ Completed {prop}...")
+
+                progress_bar.empty()
 
                 fig_sensitivity = go.Figure()
                 for prop, analysis_df in sorted(results, key=lambda x: int(x[0].replace("BlendProperty", ""))):
@@ -1154,12 +1238,14 @@ def main():
                         y=analysis_df['predicted_value'].astype(float),
                         mode='lines+markers', name=prop
                     ))
+
                 fig_sensitivity.update_layout(
                     title=f"Sensitivity Analysis: Varying Component {component_to_vary}",
-                    template="plotly_white"
+                    xaxis_title=f"Fraction of Component {component_to_vary}",
+                    yaxis_title="Predicted Value", template="plotly_white", height=600,
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_sensitivity, use_container_width=True)
-
 
 if __name__ == "__main__":
     main()

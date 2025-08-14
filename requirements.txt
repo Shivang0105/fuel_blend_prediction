@@ -60,4 +60,5 @@ urllib3==2.5.0
 watchdog==6.0.0
 xgboost==3.0.3
 streamlit-aggrid
-streamlit-js-eval
+streamlit-js-eval==0.1.1
+

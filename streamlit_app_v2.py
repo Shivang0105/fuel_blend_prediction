@@ -16,6 +16,8 @@ import time
 import shap
 import matplotlib.pyplot as plt
 from st_aggrid import AgGrid, GridOptionsBuilder
+import pandas as pd
+import plotly.graph_objects as go
 # --- 1. Backend & Logic Functions ---
 # This section contains the real logic to load and run your models.
 def generate_global_shap_summary(df, property_to_explain, assets):
@@ -1057,11 +1059,11 @@ def main():
                 sortable=True,
                 resizable=True
             )
-
+            gb.configure_column("ID", width=80, minWidth=50, maxWidth=100)
             # ✅ Explicitly ensure sorting is on for all columns
             for col in display_df.columns:
                 gb.configure_column(col, sortable=True)
-
+            gb.configure_grid_options(fitColumnsOnGridLoad=True)  # auto-adjust widths
             # gb.configure_pagination(paginationAutoPageSize=True)
             gb.configure_side_bar()
             grid_options = gb.build()
@@ -1108,26 +1110,68 @@ def main():
                     st.rerun()
 
     elif st.session_state.step == 3:
-            st.header("Step 3: Blend Analysis & Explainability")
+        st.header("Step 3: Blend Analysis & Explainability")
 
-            if "final_prediction_df" not in st.session_state:
-                st.warning("⚠ No prediction data available. Please go back to Step 2.")
-                if st.button("⬅ Back to Prediction Results"):
-                    st.session_state.step = 2
-                    st.rerun()
-                return
+        if "final_prediction_df" not in st.session_state:
+            st.warning("⚠ No prediction data available. Please go back to Step 2.")
+            if st.button("⬅ Back to Prediction Results"):
+                st.session_state.step = 2
+                st.rerun()
+            return
 
-            df = st.session_state.final_prediction_df
+        df = st.session_state.final_prediction_df
 
+        button_css = """
+        <style>
+        div.stButton > button {
+            height: auto;
+            padding-top: 15px !important;
+            padding-bottom: 15px !important;
+            font-size: 18px !important;
+        }
+        </style>
+        """
+        # --- HORIZONTAL FULL-WIDTH TAB-LIKE SELECTOR ---
+        col1, col2 = st.columns([1, 1])  # Equal-width columns
+        if "section" not in st.session_state:
+            st.session_state.section = "Overall Dataset Analysis"
+
+        with col1:
+            if st.button("📊 Overall Dataset Analysis", key="btn_overall", use_container_width=True):
+                st.session_state.section = "Overall Dataset Analysis"
+
+        with col2:
+            if st.button("🔬 Single Blend Deep Dive", key="btn_single", use_container_width=True):
+                st.session_state.section = "Single Blend Deep Dive"
+
+        section = st.session_state.section
+
+        # --- SHOW SELECTED SECTION ---
+        if section == "Overall Dataset Analysis":
             st.markdown(f"<h2>📊 Overall Dataset Analysis</h2>", unsafe_allow_html=True)
-            st.markdown(
-                "This shows how component fractions are distributed across the entire uploaded batch, "
-                "helping you spot overall trends and distributions."
-            )
-
             numeric_df = df.select_dtypes(include='number')
             fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
-
+        # --- Component Fraction Boxplot ---
+            fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
+            if fraction_cols:
+                melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
+                fig_box = px.box(
+                    melted_frac,
+                    x="Component",
+                    y="Fraction",
+                    points="all",
+                    color="Component",
+                    title="📦 Distribution of Component Fractions Across All Uploaded Blends",
+                    template="plotly_white"
+                )
+                fig_box.update_layout(
+                    height=400,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False,
+                    font=dict(color="#222222")
+                )
+            st.plotly_chart(fig_box, use_container_width=True)
             if fraction_cols:
                 melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
                 fig_box = px.box(
@@ -1142,10 +1186,47 @@ def main():
                     showlegend=False,
                     font=dict(color="#222222")
                 )
-                st.plotly_chart(fig_box, use_container_width=True)
+            blend_props = [f"BlendProperty{i}" for i in range(1, 11) if f"BlendProperty{i}" in numeric_df.columns]
+            if blend_props:
+                melted_props = numeric_df[blend_props].melt(var_name="Property", value_name="Value")
 
+                # Boxplot for 10 BlendProperties
+                fig_props = px.box(
+                    melted_props,
+                    x="Property",
+                    y="Value",
+                    points="all",
+                    color="Property",
+                    title="📊 Distribution of 10 BlendProperties",
+                    template="plotly_white"
+                )
+                fig_props.update_layout(
+                    height=400,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False,
+                    font=dict(color="#222222")
+                )
+                st.plotly_chart(fig_props, use_container_width=True)
+            if blend_props:
+                summary_data = []
+                for prop in blend_props:
+                    min_idx = numeric_df[prop].idxmin()  # index of min value
+                    max_idx = numeric_df[prop].idxmax()  # index of max value
+                    summary_data.append({
+                        "Property": prop,
+                        "Min Value": numeric_df.loc[min_idx, prop],
+                        "Index of Min": min_idx,
+                        "Max Value": numeric_df.loc[max_idx, prop],
+                        "Index of Max": max_idx
+                    })
+                
+                min_max_df = pd.DataFrame(summary_data)
+                st.markdown("### 📋 BlendProperties Min/Max Table")
+                st.dataframe(min_max_df, use_container_width=True)
             st.markdown("---")
 
+        elif section == "Single Blend Deep Dive":
             st.markdown(f"<h2>🔬 Single Blend Deep Dive</h2>", unsafe_allow_html=True)
             st.markdown("Select a single blend from your data to inspect its composition, understand its prediction, and run 'what-if' scenarios.")
 
@@ -1155,15 +1236,12 @@ def main():
             st.subheader("📋 Selected Row Composition")
             st.dataframe(row_data, use_container_width=True, height=80)
 
-            # --- Side-By-Side Radar Charts with Alignment ---
+            # --- Side-By-Side Radar Charts ---
             st.subheader("📡 Blend Composition Radars")
-
-            # --- CONTROLS MOVED ABOVE COLUMNS FOR ALIGNMENT ---
             comp_to_show = 1
-
             col1, col2 = st.columns(2)
+
             with col1:
-                # Radar Chart 1: Component Fractions
                 components = [f"Component {i}" for i in range(1, 6)]
                 frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
                 fractions = [row_data.iloc[0][comp] for comp in frac_cols]
@@ -1173,7 +1251,7 @@ def main():
                     r=fractions + fractions[:1],
                     theta=components + [components[0]],
                     mode='lines', fill='toself', name='Fractions',
-                    line=dict(color="#0072c6"), # Blue
+                    line=dict(color="#0072c6"),
                     fillcolor='rgba(0, 114, 198, 0.4)'
                 ))
                 fig_radar_frac.update_layout(
@@ -1189,7 +1267,6 @@ def main():
                 st.plotly_chart(fig_radar_frac, use_container_width=True)
 
             with col2:
-                # Radar Chart 2: Component Properties
                 prop_labels = [f"Prop {i}" for i in range(1, 11)]
                 prop_cols = [f"Component{comp_to_show}_Property{i}" for i in range(1, 11)]
                 prop_values = row_data.iloc[0][prop_cols].values.tolist()
@@ -1199,7 +1276,7 @@ def main():
                     r=prop_values + prop_values[:1],
                     theta=prop_labels + [prop_labels[0]],
                     mode='lines', fill='toself', name='Properties',
-                    line=dict(color="#28a745"), # Green
+                    line=dict(color="#28a745"),
                     fillcolor='rgba(40, 167, 69, 0.4)'
                 ))
                 fig_radar_props.update_layout(
@@ -1214,15 +1291,16 @@ def main():
                 )
                 st.plotly_chart(fig_radar_props, use_container_width=True)
 
-            st.markdown("<br>", unsafe_allow_html=True) # Add some space
-            # --- End of radar section ---
+            st.markdown("<br>", unsafe_allow_html=True)
 
+            # --- Prediction Explanation ---
             st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
             with st.expander("How does this work?"):
                 st.info(
-                "This section explains why the model made its prediction. Choose a property and a plot type to see "
-                "which features had the biggest impact."
+                    "This section explains why the model made its prediction. Choose a property and a plot type to see "
+                    "which features had the biggest impact."
                 )
+
             col1, col2 = st.columns(2)
             with col1:
                 property_to_explain = st.selectbox(
@@ -1233,7 +1311,7 @@ def main():
             with col2:
                 plot_type = st.selectbox(
                     "Select a plot type:",
-                    [ "Force Plot","Waterfall", "Decision Plot"],
+                    ["Force Plot","Waterfall", "Decision Plot"],
                     key="shap_plot_selector"
                 )
 
@@ -1246,6 +1324,7 @@ def main():
                     elif plot_type == "Force Plot":
                         generate_shap_force_plot(row_data, property_to_explain, assets)
 
+            # --- Sensitivity Analysis ---
             st.markdown("<h3>🔬 Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
             with st.expander("How does this work?"):
                 st.info(
@@ -1287,17 +1366,20 @@ def main():
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_sensitivity, use_container_width=True)
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("⬅ Back to Prediction Results", use_container_width=True):
-                    st.session_state.step = 2
-                    st.rerun()
-            with col2:
-                if st.button("Upload Another File", use_container_width=True):
-                    for key in ["batch_input_df", "final_prediction_df"]:
-                        st.session_state.pop(key, None)
-                    st.session_state.step = 1
-                    st.rerun()
+
+        # --- Bottom Navigation ---
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("⬅ Back to Prediction Results", use_container_width=True):
+                st.session_state.step = 2
+                st.rerun()
+        with col2:
+            if st.button("Upload Another File", use_container_width=True):
+                for key in ["batch_input_df", "final_prediction_df"]:
+                    st.session_state.pop(key, None)
+                st.session_state.step = 1
+                st.rerun()
+
 
 if __name__ == "__main__":
     main()

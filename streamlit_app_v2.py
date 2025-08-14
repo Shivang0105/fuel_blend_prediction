@@ -1069,6 +1069,8 @@ def main():
             grid_options['multiSortKey'] = 'ctrl'  # Enable multi-column sorting
             grid_options['rowHoverHighlight'] = True
             grid_options["floatingFilter"] = True
+            grid_options["enableRangeSelection"] = True
+            grid_options["enableCellTextSelection"] = True
 
             grid_response = AgGrid(
                 display_df,
@@ -1285,6 +1287,17 @@ def main():
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
                 )
                 st.plotly_chart(fig_sensitivity, use_container_width=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("⬅ Back to Prediction Results", use_container_width=True):
+                    st.session_state.step = 2
+                    st.rerun()
+            with col2:
+                if st.button("Upload Another File", use_container_width=True):
+                    for key in ["batch_input_df", "final_prediction_df"]:
+                        st.session_state.pop(key, None)
+                    st.session_state.step = 1
+                    st.rerun()
 
 if __name__ == "__main__":
     main()

@@ -671,10 +671,10 @@ def display_footer():
       .footer-inner {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0.75rem 1rem;      /* compact height */
+          padding: 0.75rem 1rem;      
           text-align: center;
-          font-size: 1rem;         /* smaller text */
-          color: #0f172a;             /* dark slate for readability */
+          font-size: 1rem;         
+          color: #0f172a;             
           line-height: 1.2;
       }
     </style>

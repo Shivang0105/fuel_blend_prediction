@@ -954,7 +954,7 @@ def main():
             border-radius: 0 0 20px 20px;
             display: flex; justify-content: space-between; align-items: center;
             padding: 0.6rem 1.5rem;
-            height: 64px;
+            height: 68px;
         }}
 
         /* Make link fill the left area and clickable across full height */

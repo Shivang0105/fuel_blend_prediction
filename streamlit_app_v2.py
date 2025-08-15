@@ -327,6 +327,7 @@ def plot_fraction_sums(df):
         plot_bgcolor='rgba(0,0,0,0)',
     )
     return fig
+
 def image_to_base64(path):
     """Converts a local image file to a base64 string."""
     with open(path, "rb") as image_file:
@@ -356,7 +357,6 @@ def plot_missing_matrix(df):
         plot_bgcolor='rgba(240, 242, 246, 0.8)', # A slight off-white for the plot area
     )
     return fig
-
 
 
 def run_sensitivity_analysis(input_df, assets, property_to_analyze, component_to_vary):
@@ -423,6 +423,7 @@ def display_step_progress(step, mode):
             st.markdown(f'<div class="{css_class}">{step_name}</div>', unsafe_allow_html=True)
 
     st.markdown("---")
+
 def validate_batch_input(df, num_components=5, num_properties=10):
     """
     Validates uploaded batch CSV with more descriptive error messages.
@@ -553,6 +554,7 @@ def render_flow_block(title, subtitle, detail, color, icon="💡", width="300px"
     }}
     </style>
     """, unsafe_allow_html=True)
+
 def get_gif_base64(gif_path):
     with open(gif_path, "rb") as f:
         return base64.b64encode(f.read()).decode()
@@ -635,6 +637,156 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
+def display_team_section():
+    """
+    Displays the new 'Meet the Team' section with a 2x2 grid and text block.
+    """
+    # --- Team Member Data ---
+    # You can easily update team members' info here
+    team_members = [
+        {"name": "Abhinav Tyagi", "role": "Project Lead & ML Architect"},
+        {"name": "Siddharth Bansal", "role": "Data Scientist"},
+        {"name": "Shivang Sharma", "role": "ML Engineer"},
+        {"name": "Utkarsh Singh", "role": "UI/UX & Frontend Developer"}
+    ]
+
+    # --- Base64 Encoded Placeholder SVG ---
+    # An SVG icon is used as a placeholder to avoid external image dependencies.
+    placeholder_svg = """
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
+    </svg>
+    """
+    b64_svg = base64.b64encode(placeholder_svg.encode()).decode()
+
+    # --- CSS for Styling ---
+    # This CSS block creates the card layout, circular images, and text styling.
+    st.markdown(f"""
+    <style>
+        .team-container {{
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }}
+        .team-grid {{
+            flex: 1;
+        }}
+        .team-text {{
+            flex: 1;
+            padding-left: 2rem;
+        }}
+        .team-card {{
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%; /* Ensure cards in a row have same height */
+            margin-bottom: 1.5rem;
+        }}
+        .team-card:hover {{
+            transform: translateY(-10px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+        }}
+        .profile-img-container {{
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 1rem auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Gradient matches your app's theme! */
+            background: linear-gradient(45deg, #f7b0c8, #b9e6ff);
+            padding: 5px;
+        }}
+        .profile-img {{
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: white; /* Fallback color */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }}
+        .profile-img img {{
+            width: 50%;
+            height: 50%;
+            filter: grayscale(100%) invert(80%) sepia(5%) saturate(500%) hue-rotate(180deg) brightness(1.2) contrast(1);
+        }}
+        .team-name {{
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #013A63; /* Dark blue for contrast */
+            margin-bottom: 0.25rem;
+        }}
+        .team-role {{
+            color: #005A9C; /* Lighter blue */
+            font-size: 0.9rem;
+        }}
+        .team-text .small-header {{
+            font-weight: 600;
+            color: #0072c6;
+            margin-bottom: -0.5rem;
+        }}
+        .team-text .big-header {{
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #004E92;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }}
+        .team-text p:not(.small-header) {{
+            color: #333;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # --- HTML Layout ---
+    # Using st.columns to create the main left/right layout
+    grid_col, text_col = st.columns([1.1, 1]) # Give a bit more space to the grid
+
+    with text_col:
+        st.markdown("""
+        <div class="team-text">
+            <p class="small-header">Our Team</p>
+            <h2 class="big-header">Locus</h2>
+            <p>We are a passionate group of students—Abhinav, Siddharth, Shivang, and Utkarsh—united by our enthusiasm for machine learning and data science.</p>
+            <p>Our diverse skills and collaborative spirit drive us to tackle complex challenges and build innovative, AI-powered solutions.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with grid_col:
+        # Create a 2x2 grid using nested columns
+        row1_col1, row1_col2 = st.columns(2)
+        row2_col1, row2_col2 = st.columns(2)
+        
+        cols = [row1_col1, row1_col2, row2_col1, row2_col2]
+
+        # Loop to populate the grid
+        for i, member in enumerate(team_members):
+            with cols[i]:
+                st.markdown(f"""
+                <div class="team-card">
+                    <div class="profile-img-container">
+                        <div class="profile-img">
+                            <img src="data:image/svg+xml;base64,{b64_svg}" alt="Profile Icon">
+                        </div>
+                    </div>
+                    <div class="team-name">{member['name']}</div>
+                    <div class="team-role">{member['role']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
 def display_footer():
     """
     Compact, full-bleed footer that matches the app theme,
@@ -710,7 +862,7 @@ def main():
     st.set_page_config(page_title="Fuel Blend AI", layout="wide")
     st_javascript("window.scrollTo(0, 0);")
 
-    # --- ✨ NEW: Patched Gradient Background Theme ---
+    # --- Gradient Background Theme ---
     st.markdown("""
     <style>
         .block-container {
@@ -751,6 +903,45 @@ def main():
         div[data-baseweb="popover"], div[data-baseweb="menu"] > ul {
             background-color: #FFFFFF !important;
         }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # -- Gradient Button Theme
+    st.markdown("""
+    <style>
+    /* Style all Streamlit buttons */
+    .stButton > button {
+    width: 100% !important;
+    padding: 0.65rem 1rem !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+
+    /* Base: white pill with black text + gradient border */
+    color: #111 !important;
+    border: 3.5px solid transparent !important;  /* slightly thinner border */
+    background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(90deg, #ffb3d9, #ff9999, #ffd36b) border-box !important; /* pink → light red → yellow */
+
+    box-shadow: none !important;
+    transition: background .2s ease, color .2s ease, transform .05s ease, box-shadow .2s ease;
+    }
+
+    /* Hover: invert theme — gradient fill, white border, white text */
+    .stButton > button:hover {
+    color: #ffffff !important;
+    background:
+        linear-gradient(90deg, #ffb3d9, #ff9999, #ffd36b) padding-box,
+        linear-gradient(#ffffff, #ffffff) border-box !important;
+    box-shadow: 0 6px 20px rgba(255, 179, 217, 0.25);
+    }
+
+    /* Press + accessibility */
+    .stButton > button:active { transform: translateY(1px); }
+    .stButton > button:focus-visible {
+    outline: 3px solid rgba(255, 179, 217, 0.55) !important;
+    outline-offset: 2px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -895,37 +1086,12 @@ def main():
 
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
-            st.markdown('<div class="section-header">About Our Team</div>', unsafe_allow_html=True)
-            # --- Team Section ---
-            st.markdown("""
-            <div style="
-                margin: 2em auto; 
-                max-width: 650px; 
-                padding: 2em 3em; 
-                border-radius: 20px;
-                background: linear-gradient(135deg, rgba(0,123,255,0.25), rgba(0,191,255,0.25));
-                box-shadow: 0 8px 32px rgba(0, 0, 50, 0.2);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border: 1px solid rgba(0, 191, 255, 0.3);
-                text-align: center;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            ">
-                <h3 style="font-weight: 800; font-size: 2.4em; margin-bottom: 0.6em; color: #004E92; letter-spacing: 1px;">
-                    Team Locus
-                </h3>
-                <div style="display: flex; justify-content: center; gap: 5em; font-size: 1.4em; font-weight: 600; color: #013A63;">
-                    <div>
-                        <p style="margin: 0.4em 0;">Abhinav Tyagi</p>
-                        <p style="margin: 0.4em 0;">Siddharth Bansal</p>
-                    </div>
-                    <div>
-                        <p style="margin: 0.4em 0;">Shivang Sharma</p>
-                        <p style="margin: 0.4em 0;">Utkarsh Singh</p>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+
+
+            # --- Meet theTeam Section ---
+            st.markdown('<div class="section-header">Meet Our Team</div>', unsafe_allow_html=True)
+            display_team_section() # ✨ This call renders the new design
+
         display_footer()
         return
     
@@ -1174,7 +1340,7 @@ def main():
                 data=csv_to_download,
                 file_name="blend_predictions_full.csv",
                 mime="text/csv",
-                use_container_width=True,
+                use_container_width=False,
                 key="download_full_csv",
             )
 
@@ -1191,6 +1357,7 @@ def main():
                     st.session_state.step = 3
                     st.rerun()
         display_footer()
+        
     elif st.session_state.step == 3:
         st.header("Step 3: Blend Analysis & Explainability")
 
@@ -1251,25 +1418,23 @@ def main():
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     showlegend=False,
-                    title=dict(
-                        text="Distribution of Component Fractions Across All Uploaded Blends",
-                        font=dict(
-                            size=16,
-                            color="#000000" # Black color for title
-                        )
-                    ),
-                    xaxis=dict(
-                        title_text="Component",
-                        title_font=dict(size=14, color="#000000"), # Axis title font
-                        tickfont=dict(size=12, color="#000000")   # X-axis tick font
-                    ),
-                    yaxis=dict(
-                        title_text="Fraction",
-                        title_font=dict(size=14, color="#000000"), # Axis title font
-                        tickfont=dict(size=12, color="#000000")   # Y-axis tick font
-                    )
+                    font=dict(color="#222222")
                 )
             st.plotly_chart(fig_box, use_container_width=True)
+            if fraction_cols:
+                melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
+                fig_box = px.box(
+                    melted_frac, x="Component", y="Fraction", points="all", color="Component",
+                    title="Distribution of Component Fractions Across All Uploaded Blends",
+                    template="plotly_white"
+                )
+                fig_box.update_layout(
+                    height=400,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False,
+                    font=dict(color="#222222")
+                )
             blend_props = [f"BlendProperty{i}" for i in range(1, 11) if f"BlendProperty{i}" in numeric_df.columns]
             if blend_props:
                 melted_props = numeric_df[blend_props].melt(var_name="Property", value_name="Value")
@@ -1293,23 +1458,7 @@ def main():
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     showlegend=False,
-                    title=dict(
-                        text="Distribution of 10 BlendProperties",
-                        font=dict(
-                            size=16,
-                            color="#000000"  # Black color for title
-                        )
-                    ),
-                    xaxis=dict(
-                        title_text="Property",
-                        title_font=dict(size=14, color="#000000"),  # Axis title font
-                        tickfont=dict(size=12, color="#000000")    # X-axis tick font
-                    ),
-                    yaxis=dict(
-                        title_text="Value",
-                        title_font=dict(size=14, color="#000000"),  # Axis title font
-                        tickfont=dict(size=12, color="#000000")    # Y-axis tick font
-                    )
+                    font=dict(color="#222222")
                 )
                 original_labels = melted_props['Property'].unique()
                 # Create the new, short labels
@@ -1472,35 +1621,12 @@ def main():
                         mode='lines+markers', name=prop
                     ))
 
-                    fig_sensitivity.update_layout(
-                        title=dict(
-                            text=f"Sensitivity Analysis: Varying Component {component_to_vary}",
-                            font=dict(
-                                size=16,
-                                color="#000000"
-                            )
-                        ),
-                        xaxis=dict(
-                            title_text=f"Fraction of Component {component_to_vary}",
-                            title_font=dict(size=14, color="#000000"),
-                            tickfont=dict(size=12, color="#000000")
-                        ),
-                        yaxis=dict(
-                            title_text="Predicted Value",
-                            title_font=dict(size=14, color="#000000"),
-                            tickfont=dict(size=12, color="#000000")
-                        ),
-                        legend=dict(
-                            font=dict(
-                                size=12,
-                                color="#000000"
-                            )
-                        ),
-                        template="plotly_white",
-                        height=600,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)'
-                    )
+                fig_sensitivity.update_layout(
+                    title=f"Sensitivity Analysis: Varying Component {component_to_vary}",
+                    xaxis_title=f"Fraction of Component {component_to_vary}",
+                    yaxis_title="Predicted Value", template="plotly_white", height=600,
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+                )
                 st.plotly_chart(fig_sensitivity, use_container_width=True)
 
         # --- Bottom Navigation ---

@@ -687,7 +687,7 @@ def display_footer():
     <div class="flex-spacer"></div>
     <footer class="footer-bleed">
       <div class="footer-inner">
-        © 2025 Locus · Predicting fuel properties. Powered by coffee properties. ☕
+        © 2025 Locus · There's a 99.9% chance this was built after midnight ;)
       </div>
     </footer>
     """
@@ -930,30 +930,91 @@ def main():
         display_footer()
         return
     
-    # --- NEW: Clickable Header to go Home ---
+        # --- CUSTOM STYLED HEADER (FIXED) ---
     try:
-        logo_base64 = image_to_base64("images/ChatGPT Image Aug 13, 2025, 04_28_27 PM.png")
-        st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem;filter: brightness(0.95)">
-            <a href="." target="_self" style="text-decoration: none;">
-                <div style="display: flex; align-items: center; gap: 0.75rem; color: black;">
-                    <img style="filter: brightness(0.95) drop-shadow(4px 6px 8px rgba(0, 0, 0, 0.4));"src="data:image/png;base64,{logo_base64}" width="80">
-                    <h2 style="margin: 0; font-weight: 600; font-size: 2rem;background: linear-gradient(to right, #0072c6 20%, #28a745 50%, #0072c6 80%);background-size: 200% auto;color: #000;background-clip: text;-webkit-background-clip: text;-webkit-text-fill-color: transparent;animation: shine 4s linear infinite;">Shell.ai Hackathon</h2>
-                </div>
-            </a>
-            <div style="font-size: 2rem; font-weight: 400; color: #0072c6;">Team Locus</div>
-        </div>
-        """, unsafe_allow_html=True)
+        logo_path = "images/ChatGPT Image Aug 13, 2025, 04_28_27 PM.png"
+        logo_base64 = image_to_base64(logo_path)
+        logo_img_html = f'<div class="logo-bg"><img src="data:image/png;base64,{logo_base64}"></div>'
     except FileNotFoundError:
-        # Fallback if logo is missing
-        st.markdown("""
-        <div style="display: flex; justify-content: flex-end; padding-bottom: 1rem;">
-            <div style="font-size: 1.1rem; font-weight: 600; color: #0072c6;">Team Locus</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Home"):
-            st.session_state.step = 0
-            st.rerun()
+        logo_img_html = "" # Logo will be omitted if not found
+
+    st.markdown(f"""
+    <style>
+        /* --- FIX: Hides the default Streamlit header, which blocks clicks on our custom header --- */
+        [data-testid="stHeader"] {{
+            display: none !important;
+        }}
+
+        .custom-header {{
+            position: fixed; top: 0; left: 0; right: 0; width: 100%; z-index: 9999;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 0 0 20px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.6rem 1.5rem;
+            height: 64px;
+        }}
+
+        /* Make link fill the left area and clickable across full height */
+        .header-link {{
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            height: 100%;
+            text-decoration: none !important;
+            color: inherit !important;
+            padding: 0; 
+            margin: 0;
+        }}
+
+        /* Logo background for visibility */
+        .logo-bg {{
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }}
+        .logo-bg img {{
+            width: 42px;
+            height: auto;
+            display: block;
+        }}
+
+        .header-title {{
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+            line-height: 1; /* ensures better vertical alignment */
+            background: linear-gradient(to right, #0072c6 20%, #28a745 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }}
+
+        .header-team {{
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #005A9C;
+            margin-right: 2.5rem; /* space from right */
+        }}
+
+        /* Push content below fixed header */
+        .block-container {{ padding-top: 5.5rem !important; }}
+    </style>
+
+    <div class="custom-header">
+        <a href="." target="_self" class="header-link">
+            {logo_img_html}
+            <h2 class="header-title">Shell.ai Hackathon</h2>
+        </a>
+        <div class="header-team">Locus</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 
     display_step_progress(st.session_state.step, mode="batch")
     # STEP 1: Upload CSV

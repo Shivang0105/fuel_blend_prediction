@@ -895,6 +895,7 @@ def main():
 
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
+            st.markdown('<div class="section-header">About Our Team</div>', unsafe_allow_html=True)
             # --- Team Section ---
             st.markdown("""
             <div style="

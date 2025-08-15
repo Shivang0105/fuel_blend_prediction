@@ -1251,23 +1251,25 @@ def main():
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     showlegend=False,
-                    font=dict(color="#222222")
+                    title=dict(
+                        text="Distribution of Component Fractions Across All Uploaded Blends",
+                        font=dict(
+                            size=16,
+                            color="#000000" # Black color for title
+                        )
+                    ),
+                    xaxis=dict(
+                        title_text="Component",
+                        title_font=dict(size=14, color="#000000"), # Axis title font
+                        tickfont=dict(size=12, color="#000000")   # X-axis tick font
+                    ),
+                    yaxis=dict(
+                        title_text="Fraction",
+                        title_font=dict(size=14, color="#000000"), # Axis title font
+                        tickfont=dict(size=12, color="#000000")   # Y-axis tick font
+                    )
                 )
             st.plotly_chart(fig_box, use_container_width=True)
-            if fraction_cols:
-                melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
-                fig_box = px.box(
-                    melted_frac, x="Component", y="Fraction", points="all", color="Component",
-                    title="Distribution of Component Fractions Across All Uploaded Blends",
-                    template="plotly_white"
-                )
-                fig_box.update_layout(
-                    height=400,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    showlegend=False,
-                    font=dict(color="#222222")
-                )
             blend_props = [f"BlendProperty{i}" for i in range(1, 11) if f"BlendProperty{i}" in numeric_df.columns]
             if blend_props:
                 melted_props = numeric_df[blend_props].melt(var_name="Property", value_name="Value")
@@ -1291,7 +1293,23 @@ def main():
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     showlegend=False,
-                    font=dict(color="#222222")
+                    title=dict(
+                        text="Distribution of 10 BlendProperties",
+                        font=dict(
+                            size=16,
+                            color="#000000"  # Black color for title
+                        )
+                    ),
+                    xaxis=dict(
+                        title_text="Property",
+                        title_font=dict(size=14, color="#000000"),  # Axis title font
+                        tickfont=dict(size=12, color="#000000")    # X-axis tick font
+                    ),
+                    yaxis=dict(
+                        title_text="Value",
+                        title_font=dict(size=14, color="#000000"),  # Axis title font
+                        tickfont=dict(size=12, color="#000000")    # Y-axis tick font
+                    )
                 )
                 original_labels = melted_props['Property'].unique()
                 # Create the new, short labels
@@ -1454,12 +1472,35 @@ def main():
                         mode='lines+markers', name=prop
                     ))
 
-                fig_sensitivity.update_layout(
-                    title=f"Sensitivity Analysis: Varying Component {component_to_vary}",
-                    xaxis_title=f"Fraction of Component {component_to_vary}",
-                    yaxis_title="Predicted Value", template="plotly_white", height=600,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
-                )
+                    fig_sensitivity.update_layout(
+                        title=dict(
+                            text=f"Sensitivity Analysis: Varying Component {component_to_vary}",
+                            font=dict(
+                                size=16,
+                                color="#000000"
+                            )
+                        ),
+                        xaxis=dict(
+                            title_text=f"Fraction of Component {component_to_vary}",
+                            title_font=dict(size=14, color="#000000"),
+                            tickfont=dict(size=12, color="#000000")
+                        ),
+                        yaxis=dict(
+                            title_text="Predicted Value",
+                            title_font=dict(size=14, color="#000000"),
+                            tickfont=dict(size=12, color="#000000")
+                        ),
+                        legend=dict(
+                            font=dict(
+                                size=12,
+                                color="#000000"
+                            )
+                        ),
+                        template="plotly_white",
+                        height=600,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)'
+                    )
                 st.plotly_chart(fig_sensitivity, use_container_width=True)
 
         # --- Bottom Navigation ---

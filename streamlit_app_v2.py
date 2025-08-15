@@ -309,7 +309,7 @@ def plot_fraction_sums(df):
         x=x_axis,
         y='fraction_sum',
         color='Status',
-        title="⚖ Fraction Sum Validation",
+        title="Fraction Sum Validation",
         labels={'fraction_sum': 'Sum of Fractions', 'x': 'Row ID'},
         color_discrete_map={
             'Valid (Sum ≈ 1.0)': '#28a745',  # Green
@@ -347,7 +347,7 @@ def plot_missing_matrix(df):
     ))
 
     fig.update_layout(
-        title="🔍 Data Health Matrix",
+        title="Data Health Matrix",
         height=400,
         margin=dict(t=40, l=0, r=0, b=0),
         xaxis=dict(showgrid=False, showticklabels=False, title="Features (Columns)"),
@@ -951,7 +951,7 @@ def main():
             <div style="font-size: 1.1rem; font-weight: 600; color: #0072c6;">Team Locus</div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("🏠 Home"):
+        if st.button("Home"):
             st.session_state.step = 0
             st.rerun()
 
@@ -1029,7 +1029,7 @@ def main():
             else:
                 st.success("Validation Passed :) : Your data looks good! You can now proceed to prediction.")
 
-            if st.button("➡ Predict", use_container_width=True, disabled=not is_valid):
+            if st.button("Predict ➡", use_container_width=True, disabled=not is_valid):
                 st.session_state.step = 2
                 streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
                 st.rerun()
@@ -1063,7 +1063,7 @@ def main():
 
             final_df = st.session_state.final_prediction_df
 
-            st.subheader("📊 Prediction Results")
+            st.subheader("Prediction Results")
 
             # --- AGGRID TABLE ---
             cols_to_display = ["ID"] + [f"BlendProperty{i}" for i in range(1, 11)]
@@ -1078,7 +1078,7 @@ def main():
             gb.configure_column("ID", width=80, minWidth=50, maxWidth=100)
             # ✅ Explicitly ensure sorting is on for all columns
             for col in display_df.columns:
-                gb.configure_column(col, sortable=True)
+                gb.configure_column(col, sortable=True,headerClass="bold-header")
             gb.configure_grid_options(fitColumnsOnGridLoad=True)  # auto-adjust widths
             # gb.configure_pagination(paginationAutoPageSize=True)
             gb.configure_side_bar()
@@ -1089,7 +1089,13 @@ def main():
             grid_options["floatingFilter"] = True
             grid_options["enableRangeSelection"] = True
             grid_options["enableCellTextSelection"] = True
-
+            st.markdown("""
+            <style>
+            .ag-theme-streamlit .ag-header-cell.bold-header .ag-header-cell-label {
+                font-weight: 700 !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
             grid_response = AgGrid(
                 display_df,
                 gridOptions=grid_options,
@@ -1102,11 +1108,11 @@ def main():
 
             # --- DOWNLOAD (MATCHES FILTERED VIEW) ---
             filtered_df = pd.DataFrame(grid_response["data"])
-            csv_to_download = filtered_df.to_csv(index=False).encode("utf-8")
+            csv_to_download = final_df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="📥 Download Filtered Results CSV",
+                label="Download Full Results CSV",
                 data=csv_to_download,
-                file_name="blend_predictions_output.csv",
+                file_name="blend_predictions_full.csv",
                 mime="text/csv",
                 use_container_width=True,
                 key="download_full_csv",
@@ -1121,7 +1127,7 @@ def main():
                     st.session_state.step = 1
                     st.rerun()
             with col2:
-                if st.button("➡ Go to Analysis", use_container_width=True):
+                if st.button("Go to Analysis ➡", use_container_width=True):
                     st.session_state.step = 3
                     st.rerun()
         display_footer()
@@ -1153,18 +1159,18 @@ def main():
             st.session_state.section = "Overall Dataset Analysis"
 
         with col1:
-            if st.button("📊 Overall Dataset Analysis", key="btn_overall", use_container_width=True):
+            if st.button("Overall Dataset Analysis", key="btn_overall", use_container_width=True):
                 st.session_state.section = "Overall Dataset Analysis"
 
         with col2:
-            if st.button("🔬 Single Blend Deep Dive", key="btn_single", use_container_width=True):
+            if st.button("Single Blend Deep Dive", key="btn_single", use_container_width=True):
                 st.session_state.section = "Single Blend Deep Dive"
 
         section = st.session_state.section
 
         # --- SHOW SELECTED SECTION ---
         if section == "Overall Dataset Analysis":
-            st.markdown(f"<h2>📊 Overall Dataset Analysis</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2>Overall Dataset Analysis</h2>", unsafe_allow_html=True)
             numeric_df = df.select_dtypes(include='number')
             fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
         # --- Component Fraction Boxplot ---
@@ -1177,7 +1183,7 @@ def main():
                     y="Fraction",
                     points="all",
                     color="Component",
-                    title="📦 Distribution of Component Fractions Across All Uploaded Blends",
+                    title="Distribution of Component Fractions Across All Uploaded Blends",
                     template="plotly_white"
                 )
                 fig_box.update_layout(
@@ -1192,7 +1198,7 @@ def main():
                 melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
                 fig_box = px.box(
                     melted_frac, x="Component", y="Fraction", points="all", color="Component",
-                    title="📦 Distribution of Component Fractions Across All Uploaded Blends",
+                    title="Distribution of Component Fractions Across All Uploaded Blends",
                     template="plotly_white"
                 )
                 fig_box.update_layout(
@@ -1217,7 +1223,7 @@ def main():
                     y="Value",
                     points="all",
                     color="Property",
-                    title="📊 Distribution of 10 BlendProperties",
+                    title="Distribution of 10 BlendProperties",
                     template="plotly_white"
                 )
                 fig_props.update_layout(
@@ -1251,22 +1257,22 @@ def main():
                     })
                 
                 min_max_df = pd.DataFrame(summary_data)
-                st.markdown("### 📋 BlendProperties Min/Max Table")
+                st.markdown("### BlendProperties Min/Max Table")
                 st.dataframe(min_max_df, use_container_width=True)
             st.markdown("---")
 
         elif section == "Single Blend Deep Dive":
-            st.markdown(f"<h2>🔬 Single Blend Deep Dive</h2>", unsafe_allow_html=True)
+            st.markdown(f"<h2>Single Blend Deep Dive</h2>", unsafe_allow_html=True)
             st.markdown("Select a single blend from your data to inspect its composition, understand its prediction, and run 'what-if' scenarios.")
 
             selected_id = st.selectbox("Select a Blend ID to analyze:", df["ID"].unique())
             row_data = df[df["ID"] == selected_id]
 
-            st.subheader("📋 Selected Row Composition")
+            st.subheader("Selected Row Composition")
             st.dataframe(row_data, use_container_width=True, height=80)
 
             # --- Side-By-Side Radar Charts ---
-            st.subheader("📡 Blend Composition Radars")
+            st.subheader("Blend Composition Radars")
             comp_to_show = 1
             col1, col2 = st.columns(2)
 
@@ -1323,7 +1329,7 @@ def main():
             st.markdown("<br>", unsafe_allow_html=True)
 
             # --- Prediction Explanation ---
-            st.markdown("<h3>💡 Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
+            st.markdown("<h3>Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
             with st.expander("How does this work?"):
                 st.info(
                     "This section explains why the model made its prediction. Choose a property and a plot type to see "
@@ -1354,7 +1360,7 @@ def main():
                         generate_shap_force_plot(row_data, property_to_explain, assets)
 
             # --- Sensitivity Analysis ---
-            st.markdown("<h3>🔬 Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
+            st.markdown("<h3>Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
             with st.expander("How does this work?"):
                 st.info(
                     """

@@ -872,37 +872,6 @@ def main():
             lottie_json = load_lottieurl(lottie_url)
             if lottie_json:
                 st_lottie(lottie_json, height=280, speed=1, quality="high")
-
-            # --- Team Section ---
-            st.markdown("""
-            <div style="
-                margin: 2em auto; 
-                max-width: 600px; 
-                padding: 2em 3em; 
-                border-radius: 15px;
-                background: linear-gradient(135deg, rgba(135,206,250,0.3), rgba(255,182,193,0.3));
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 182, 193, 0.3);
-                text-align: center;
-                color: #005A9C;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            ">
-                <h3 style="font-weight: 700; font-size: 2.2em; margin-bottom: 0.5em; color: #0072c6;">Team Locus</h3>
-                <div style="display: flex; justify-content: center; gap: 6em; font-size: 1.5em; font-weight: 600;">
-                    <div style="text-align: left;">
-                        <p style="margin: 0.3em 0;">Abhinav Tyagi</p>
-                        <p style="margin: 0.3em 0;">Siddharth Bansal</p>
-                    </div>
-                    <div style="text-align: left;">
-                        <p style="margin: 0.3em 0;">Shivang Sharma</p>
-                        <p style="margin: 0.3em 0;">Utkarsh Singh</p>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
             st.markdown("""
             <div style="text-align:center; padding:2em 0; margin-top:2em;">
                 <h2 style="color:#0072c6;">Are You Ready to Predict the Future of Fuel?</h2>
@@ -926,7 +895,36 @@ def main():
 
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()
-
+            # --- Team Section ---
+            st.markdown("""
+            <div style="
+                margin: 2em auto; 
+                max-width: 650px; 
+                padding: 2em 3em; 
+                border-radius: 20px;
+                background: linear-gradient(135deg, rgba(0,123,255,0.25), rgba(0,191,255,0.25));
+                box-shadow: 0 8px 32px rgba(0, 0, 50, 0.2);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(0, 191, 255, 0.3);
+                text-align: center;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            ">
+                <h3 style="font-weight: 800; font-size: 2.4em; margin-bottom: 0.6em; color: #004E92; letter-spacing: 1px;">
+                    Team Locus
+                </h3>
+                <div style="display: flex; justify-content: center; gap: 5em; font-size: 1.4em; font-weight: 600; color: #013A63;">
+                    <div>
+                        <p style="margin: 0.4em 0;">Abhinav Tyagi</p>
+                        <p style="margin: 0.4em 0;">Siddharth Bansal</p>
+                    </div>
+                    <div>
+                        <p style="margin: 0.4em 0;">Shivang Sharma</p>
+                        <p style="margin: 0.4em 0;">Utkarsh Singh</p>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         display_footer()
         return
     

@@ -38,7 +38,6 @@ def generate_global_shap_summary(df, property_to_explain, assets):
     # --- SOLUTION: Subsample the data if it's too large ---
     SAMPLE_SIZE = 200 
     if len(df) > SAMPLE_SIZE:
-        st.info(f"💡 To save memory, this global plot is generated from a random sample of {SAMPLE_SIZE} rows.")
         df_sample = df.sample(n=SAMPLE_SIZE, random_state=42)
     else:
         df_sample = df

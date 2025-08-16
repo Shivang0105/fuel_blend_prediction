@@ -440,7 +440,7 @@ def inverse_design(target_properties, component_properties_row, assets, num_comp
     # --- Optimizer Configuration (Tuned for Speed) ---
     bounds = [(0, 1)] * num_components
     constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
-    optimizer_options = {'maxiter': 1200, 'ftol': 1e-6, 'disp': False} # CHANGED: Reduced maxiter
+    optimizer_options = {'maxiter': 1750, 'ftol': 1e-4, 'disp': False} # CHANGED: Reduced maxiter
 
     # --- Multi-Start Optimization (Faster Version) ---
     n_starts = 3  # CHANGED: Reduced from 5 to 3 for a significant speed-up

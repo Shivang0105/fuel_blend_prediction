@@ -448,8 +448,6 @@ def inverse_design(target_properties, component_properties_row, assets, num_comp
     de_result = differential_evolution(
         objective_function,
         bounds=bounds,
-        # The constraint is passed here for differential_evolution to handle
-        constraints=constraints,
         maxiter=20, # Low number of iterations for speed
         popsize=15,
         tol=0.01

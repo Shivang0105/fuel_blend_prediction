@@ -11,16 +11,18 @@ from streamlit_javascript import st_javascript
 from streamlit_lottie import st_lottie
 import requests
 import concurrent.futures
+from scipy.optimize import minimize
 from concurrent.futures import ThreadPoolExecutor
-import time
 import shap
 import matplotlib.pyplot as plt
 from st_aggrid import AgGrid, GridOptionsBuilder
+from scipy.optimize import minimize, differential_evolution
 import pandas as pd
 import plotly.graph_objects as go
 from streamlit.components.v1 import html
 from streamlit_js_eval import streamlit_js_eval
 import io  
+
 # --- 1. Backend & Logic Functions ---
 def generate_global_shap_summary(df, property_to_explain, assets):
     """
@@ -406,6 +408,153 @@ def plot_missing_matrix(df):
     )
     return fig
 
+# --- New, More Accurate inverse_design Function ---
+# --- New Hybrid-Optimizer inverse_design Function ---
+def inverse_design(target_properties, component_properties_row, assets, num_components=5):
+    """
+    Finds optimal fractions using a hybrid global-local optimization strategy to maximize accuracy
+    without a heavy time penalty.
+    """
+    prop_cols = [c for c in component_properties_row.columns if '_Property' in c]
+    fixed_properties_df = component_properties_row[prop_cols]
+
+    def objective_function(fractions):
+        """The function to minimize: normalized squared error."""
+        frac_df = pd.DataFrame([fractions], columns=[f'Component{i+1}_fraction' for i in range(num_components)])
+        input_df = pd.concat([frac_df, fixed_properties_df.reset_index(drop=True)], axis=1)
+        predicted_props_array = predict_properties(input_df, assets)
+        
+        error = 0.0
+        for prop_name, target_value in target_properties.items():
+            prop_index = int(prop_name.split('BlendProperty')[1]) - 1
+            predicted_value = predicted_props_array[0, prop_index]
+            blend_info = assets['all_models'][prop_name]['blend_info']
+            prop_range = blend_info['max'] - blend_info['min']
+            
+            if prop_range > 1e-6:
+                normalized_error = (predicted_value - target_value) / prop_range
+            else:
+                normalized_error = (predicted_value - target_value)
+            error += normalized_error ** 2
+        return error
+
+    # --- Optimizer Configuration ---
+    bounds = [(0, 1)] * num_components
+    # Constraint for sum of fractions to be 1
+    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+
+    # --- STAGE 1: Global Search with Differential Evolution (Fast & Broad) ---
+    # Use low settings for a quick, coarse search to find a good starting region
+    de_result = differential_evolution(
+        objective_function,
+        bounds=bounds,
+        # The constraint is passed here for differential_evolution to handle
+        constraints=constraints,
+        maxiter=20, # Low number of iterations for speed
+        popsize=15,
+        tol=0.01
+    )
+
+    # --- STAGE 2: Local Refinement with SLSQP (Precise & Focused) ---
+    # Use the best result from the global search as the starting point
+    if de_result.success:
+        initial_guess = de_result.x
+        
+        # Use aggressive options for a highly precise final refinement
+        slsqp_options = {'maxiter': 5000, 'ftol': 1e-10, 'disp': False}
+
+        final_result = minimize(
+            objective_function,
+            initial_guess,
+            method='SLSQP',
+            bounds=bounds,
+            constraints=constraints,
+            options=slsqp_options
+        )
+        
+        if final_result.success:
+            final_fractions = final_result.x
+            final_frac_df = pd.DataFrame([final_fractions], columns=[f'Component{i+1}_fraction' for i in range(num_components)])
+            final_input_df = pd.concat([final_frac_df, fixed_properties_df.reset_index(drop=True)], axis=1)
+            final_predictions = predict_properties(final_input_df, assets)
+            return final_fractions, final_predictions[0], "Hybrid optimization successful."
+    
+    # Fallback message if optimization fails
+    return None, None, "Optimization failed to converge."
+
+def render_metric_card(label, value, key):
+    """Renders a styled card to display a label and a value."""
+    st.markdown(f"""
+    <div class="metric-card" id="metric-{key}">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value">{value:.4f}</div>
+    </div>
+    
+    <style>
+    .metric-card {{
+        background-color: rgba(240, 242, 246, 0.7); /* Light grey with transparency */
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border-left: 5px solid #0072c6; /* A blue accent bar */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }}
+    .metric-label {{
+        font-size: 0.9rem;
+        color: #4F4F4F; /* Dark grey for the label */
+        font-weight: 500;
+    }}
+    .metric-value {{
+        font-size: 1.3rem;
+        color: #013A63; /* Dark blue for the value */
+        font-weight: 700;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+def plot_inverse_design_results(targets, predictions):
+    """
+    Generates a radar chart to visually compare target properties with the predicted properties.
+    """
+    prop_names = list(targets.keys())
+    target_values = list(targets.values())
+    # Extract the predicted values that correspond to the targets
+    pred_values = [predictions[int(p.split('BlendProperty')[1])-1] for p in prop_names]
+
+    fig = go.Figure()
+
+    # Trace for Predicted Properties (Green)
+    fig.add_trace(go.Scatterpolar(
+        r=pred_values, theta=prop_names, fill='toself', name='Achieved Properties',
+        line=dict(color='#28a745'), fillcolor='rgba(40, 167, 69, 0.4)'
+    ))
+
+    # Trace for Target Properties (Blue)
+    fig.add_trace(go.Scatterpolar(
+        r=target_values, theta=prop_names, fill='toself', name='Target Properties',
+        line=dict(color='#0072c6'), fillcolor='rgba(0, 114, 198, 0.4)'
+    ))
+
+    # --- New, Better-Aligned Layout Code ---
+    fig.update_layout(
+        # The new title dictionary provides better spacing
+        title=dict(
+            text="Target vs. Achieved Blend Properties",
+            y=0.96 # Adjusts title's vertical position
+        ),
+        polar=dict(
+            radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
+            angularaxis=dict(tickfont=dict(size=10)),
+            bgcolor='rgba(255, 255, 255, 0.5)'
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="#222222"),
+        height=400, # Reduced height for better alignment with the table
+        legend=dict(yanchor="top", y=1.15, xanchor="center", x=0.5),
+        margin=dict(l=40, r=40, t=60, b=40) # Adds padding
+    )
+    return fig
 
 def run_sensitivity_analysis(input_df, assets, property_to_analyze, component_to_vary):
     base_fractions = [input_df[f'Component{i}_fraction'].iloc[0] for i in range(1, 6)]
@@ -692,10 +841,10 @@ def display_team_section():
 
     # --- Team Member Data (with image paths + zoom settings) ---
     team_members = [
-        {"name": "Abhinav Tyagi", "role": "Project Lead & ML Architect", "img": "images/Abhinav.jpg", "zoom": 1.8, "shift": 15},
+        {"name": "Abhinav Tyagi", "role": "ML Engineer", "img": "images/Abhinav.jpg", "zoom": 1.8, "shift": 15},
         {"name": "Siddharth Bansal", "role": "Data Scientist", "img": "images/Siddharth.jpg", "zoom": 1.4, "shift": 8},
         {"name": "Shivang Sharma", "role": "ML Engineer", "img": "images/Shivang.jpeg", "zoom": 1.1, "shift": 0},
-        {"name": "Utkarsh Singh", "role": "UI/UX & Frontend Developer", "img": "images/Utkarsh.jpg", "zoom": 1.1, "shift": 0}
+        {"name": "Utkarsh Singh", "role": "Cloud Engineer", "img": "images/Utkarsh.jpg", "zoom": 1.1, "shift": 0}
     ]
 
     # --- Helper: Encode local image to base64 ---
@@ -848,6 +997,7 @@ def display_team_section():
                     <div class="team-role">{member['role']}</div>
                 </div>
                 """, unsafe_allow_html=True)
+
 def display_footer():
     """
     Compact, full-bleed footer that matches the app theme,
@@ -900,7 +1050,7 @@ def display_footer():
     <div class="flex-spacer"></div>
     <footer class="footer-bleed">
       <div class="footer-inner">
-        © 2025 Locus · There's a 99.9% chance this was built after midnight ;)
+        © 2025 Locus · There's a 99% chance this was built after midnight ;)
       </div>
     </footer>
     """
@@ -1265,9 +1415,9 @@ def main():
             st.markdown(
             """
             Your CSV file must have:
-            - An ID column.
-            - 5 ComponentX_fraction columns (X in 1-5).
-            - 50 ComponentX_PropertyY columns(X in 1-5 and Y in 1-10).
+            - An `ID` column.
+            - 5 `ComponentX_fraction` columns (X in 1-5).
+            - 50 `ComponentX_PropertyY` columns(X in 1-5 and Y in 1-10).
             - The component fractions for each row must sum to 1.0.
             - 56 columns in total.
 
@@ -1356,7 +1506,7 @@ def main():
                         final_df = pd.concat([df.reset_index(drop=True), pred_df], axis=1)
                         st.session_state.final_prediction_df = final_df
                     except Exception as e:
-                        st.error(f"❌ Error during prediction: {e}")
+                        st.error(f" Error during prediction: {e}")
                         st.stop()
 
             final_df = st.session_state.final_prediction_df
@@ -1374,7 +1524,7 @@ def main():
                 resizable=True
             )
             gb.configure_column("ID", width=80, minWidth=50, maxWidth=100)
-            # ✅ Explicitly ensure sorting is on for all columns
+            #  Explicitly ensure sorting is on for all columns
             for col in display_df.columns:
                 gb.configure_column(col, sortable=True,headerClass="bold-header")
             gb.configure_grid_options(fitColumnsOnGridLoad=True)  # auto-adjust widths
@@ -1431,8 +1581,15 @@ def main():
         display_footer()
         
     elif st.session_state.step == 3:
-        st.header("Step 3: Blend Analysis & Explainability")
+        def sync_slider_to_num(prop_name):
+            """Callback to update the slider's state from the number input."""
+            st.session_state[f'slider_{prop_name}'] = st.session_state[f'num_{prop_name}']
 
+        def sync_num_to_slider(prop_name):
+            """Callback to update the number input's state from the slider."""
+            st.session_state[f'num_{prop_name}'] = st.session_state[f'slider_{prop_name}']
+
+        st.header("Step 3: Blend Analysis & Explainability")
         if "final_prediction_df" not in st.session_state:
             st.warning("⚠ No prediction data available. Please go back to Step 2.")
             if st.button("⬅ Back to Prediction Results"):
@@ -1442,325 +1599,366 @@ def main():
 
         df = st.session_state.final_prediction_df
 
-        button_css = """
-        <style>
-        div.stButton > button {
-            height: auto;
-            padding-top: 15px !important;
-            padding-bottom: 15px !important;
-            font-size: 18px !important;
-        }
-        </style>
-        """
         # --- HORIZONTAL FULL-WIDTH TAB-LIKE SELECTOR ---
-        col1, col2 = st.columns([1, 1])  # Equal-width columns
+        # MODIFIED: Added a third column and button for Inverse Design
+        col1, col2, col3 = st.columns([1, 1, 1])
         if "section" not in st.session_state:
             st.session_state.section = "Overall Dataset Analysis"
 
         with col1:
-            if st.button("Overall Dataset Analysis", key="btn_overall", use_container_width=True):
-                st.session_state.section = "Overall Dataset Analysis"
-
+            if st.button("Overall Blend Analysis", key="btn_overall", use_container_width=True):
+                st.session_state.section = "Overall Blend Analysis"
         with col2:
             if st.button("Single Blend Deep Dive", key="btn_single", use_container_width=True):
                 st.session_state.section = "Single Blend Deep Dive"
+        with col3:
+            if st.button(" Inverse Blend Design", key="btn_inverse", use_container_width=True):
+                st.session_state.section = "Inverse Blend Design"
 
         section = st.session_state.section
+        st.markdown("---")
 
         # --- SHOW SELECTED SECTION ---
-        if section == "Overall Dataset Analysis":
-            st.markdown(f"<h2>Overall Dataset Analysis</h2>", unsafe_allow_html=True)
+        if section == "Overall Blend Analysis":
+            st.markdown(f"<h2>Overall Blend Analysis</h2>", unsafe_allow_html=True)
+            # ... (your existing code for this section remains unchanged)
             numeric_df = df.select_dtypes(include='number')
-            fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
-        # --- Component Fraction Boxplot ---
             fraction_cols = [col for col in numeric_df.columns if 'fraction' in col]
             if fraction_cols:
                 melted_frac = numeric_df[fraction_cols].melt(var_name="Component", value_name="Fraction")
                 fig_box = px.box(
-                    melted_frac,
-                    x="Component",
-                    y="Fraction",
-                    points="all",
-                    color="Component",
+                    melted_frac, x="Component", y="Fraction", points="all", color="Component",
                     title="Distribution of Component Fractions Across All Uploaded Blends",
                     template="plotly_white"
                 )
                 fig_box.update_layout(
-                    height=400,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    showlegend=False,
-                    title=dict(
-                        text="Distribution of Component Fractions Across All Uploaded Blends",
-                        font=dict(
-                            size=16,
-                            color="#000000"  # Black color for title
-                        )
-                    ),
-                    xaxis=dict(
-                        title_text="Component",
-                        title_font=dict(size=14, color="#000000"),  # Axis title font
-                        tickfont=dict(size=12, color="#000000")    # X-axis tick font
-                    ),
-                    yaxis=dict(
-                        title_text="Fraction",
-                        title_font=dict(size=14, color="#000000"),  # Axis title font
-                        tickfont=dict(size=12, color="#000000")    # Y-axis tick font
-                    )
+                    height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False, font=dict(color="#222222")
                 )
-            st.plotly_chart(fig_box, use_container_width=True)
+                st.plotly_chart(fig_box, use_container_width=True)
+
             blend_props = [f"BlendProperty{i}" for i in range(1, 11) if f"BlendProperty{i}" in numeric_df.columns]
             if blend_props:
                 melted_props = numeric_df[blend_props].melt(var_name="Property", value_name="Value")
-                original_labels = melted_props['Property'].unique()
-                # Create the new, short labels
-                new_labels = [label.replace('BlendProperty', 'BlendProp') for label in original_labels]
-
-
-                # Boxplot for 10 BlendProperties
                 fig_props = px.box(
-                    melted_props,
-                    x="Property",
-                    y="Value",
-                    points="all",
-                    color="Property",
-                    title="Distribution of 10 BlendProperties",
-                    template="plotly_white"
+                    melted_props, x="Property", y="Value", points="all", color="Property",
+                    title="Distribution of 10 BlendProperties", template="plotly_white"
                 )
                 fig_props.update_layout(
-                    height=400,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    showlegend=False,
-                    title=dict(
-                        text="Distribution of 10 BlendProperties",
-                        font=dict(
-                            size=16,
-                            color="#000000"  # Black color for title
-                        )
-                    ),
-                    xaxis=dict(
-                        title_text="Property",
-                        title_font=dict(size=14, color="#000000"),  # Axis title font
-                        tickfont=dict(size=12, color="#000000")    # X-axis tick font
-                    ),
-                    yaxis=dict(
-                        title_text="Value",
-                        title_font=dict(size=14, color="#000000"),  # Axis title font
-                        tickfont=dict(size=12, color="#000000")    # Y-axis tick font
-                    )
+                    height=400, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    showlegend=False, font=dict(color="#222222")
                 )
                 original_labels = melted_props['Property'].unique()
-                # Create the new, short labels
-                new_labels = [label.replace('BlendProperty', 'BlendProp') for label in original_labels]
-
-                # Update the x-axis to use the new labels
-                fig_props.update_xaxes(
-                    tickvals=original_labels,
-                    ticktext=new_labels
-                )
+                new_labels = [label.replace('BlendProperty', 'Prop') for label in original_labels]
+                fig_props.update_xaxes(tickvals=original_labels, ticktext=new_labels)
                 st.plotly_chart(fig_props, use_container_width=True)
+
             st.markdown("<h3>Global Feature Importance (SHAP)</h3>", unsafe_allow_html=True)
             st.info(
                 "This plot shows the most important features for a selected property across the entire uploaded dataset. "
                 "Each point is a single prediction. Red points indicate that a high feature value pushed the prediction higher, "
                 "while blue points indicate a low feature value pushed the prediction higher."
             )
-
             property_to_explain_global = st.selectbox(
                 "Select a Blend Property to see its most influential features:",
                 [f"BlendProperty{i}" for i in range(1, 11)],
                 key="global_shap_property_selector"
             )
-
             if property_to_explain_global:
                 with st.spinner(f"Generating global SHAP summary for {property_to_explain_global}..."):
-                    # We pass the dataframe without the prediction columns to the SHAP function
                     input_data_for_shap = df.drop(columns=[f"BlendProperty{i}" for i in range(1, 11)])
-                    col1,col2,col3 = st.columns([.25,1,.25])
-                    with col2:
-                        generate_global_shap_summary(input_data_for_shap, property_to_explain_global, assets)
-            st.markdown("---")
+                    generate_global_shap_summary(input_data_for_shap, property_to_explain_global, assets)
+
 
         elif section == "Single Blend Deep Dive":
             st.markdown(f"<h2>Single Blend Deep Dive</h2>", unsafe_allow_html=True)
+            # ... (your existing code for this section remains unchanged)
             st.markdown("Select a single blend from your data to inspect its composition, understand its prediction, and run 'what-if' scenarios.")
-
             selected_id = st.selectbox("Select a Blend ID to analyze:", df["ID"].unique())
             row_data = df[df["ID"] == selected_id]
-
             st.subheader("Selected Row Composition")
             st.dataframe(row_data, use_container_width=True, height=80)
-
-            # --- Side-By-Side Radar Charts ---
             st.subheader("Blend Composition Radars")
-            comp_to_show = 1
             col1, col2 = st.columns(2)
-
             with col1:
                 components = [f"Component {i}" for i in range(1, 6)]
                 frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
                 fractions = [row_data.iloc[0][comp] for comp in frac_cols]
-
                 fig_radar_frac = go.Figure()
-                fig_radar_frac.add_trace(go.Scatterpolar(
-                    r=fractions + fractions[:1],
-                    theta=components + [components[0]],
-                    mode='lines', fill='toself', name='Fractions',
-                    line=dict(color="#0072c6"),
-                    fillcolor='rgba(0, 114, 198, 0.4)'
-                ))
-                fig_radar_frac.update_layout(
-                    polar=dict(
-                        radialaxis=dict(visible=True, range=[0, 1], gridcolor='#DDDDDD'),
-                        angularaxis=dict(tickfont=dict(size=12), rotation=90),
-                        bgcolor='rgba(255, 255, 255, 0.5)'
-                    ),
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color="#000000"), showlegend=False, height=400,
-                    title=dict(text="Component Fractions")
-                )
+                fig_radar_frac.add_trace(go.Scatterpolar(r=fractions + fractions[:1], theta=components + [components[0]], mode='lines', fill='toself', name='Fractions', line=dict(color="#0072c6"), fillcolor='rgba(0, 114, 198, 0.4)'))
+                fig_radar_frac.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 1], gridcolor='#DDDDDD'), angularaxis=dict(tickfont=dict(size=12), rotation=90), bgcolor='rgba(255, 255, 255, 0.5)'), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#000000"), showlegend=False, height=400, title=dict(text="Component Fractions"))
                 st.plotly_chart(fig_radar_frac, use_container_width=True)
-
             with col2:
                 prop_labels = [f"Prop {i}" for i in range(1, 11)]
-                prop_cols = [f"Component{comp_to_show}_Property{i}" for i in range(1, 11)]
+                prop_cols = [f"Component1_Property{i}" for i in range(1, 11)]
                 prop_values = row_data.iloc[0][prop_cols].values.tolist()
-
                 fig_radar_props = go.Figure()
-                fig_radar_props.add_trace(go.Scatterpolar(
-                    r=prop_values + prop_values[:1],
-                    theta=prop_labels + [prop_labels[0]],
-                    mode='lines', fill='toself', name='Properties',
-                    line=dict(color="#28a745"),
-                    fillcolor='rgba(40, 167, 69, 0.4)'
-                ))
-                fig_radar_props.update_layout(
-                    polar=dict(
-                        radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
-                        angularaxis=dict(tickfont=dict(size=12)),
-                        bgcolor='rgba(255, 255, 255, 0.5)'
-                    ),
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color="#000000"), showlegend=False, height=400,
-                    title=dict(text=f"Properties for Component {comp_to_show}")
-                )
+                fig_radar_props.add_trace(go.Scatterpolar(r=prop_values + prop_values[:1], theta=prop_labels + [prop_labels[0]], mode='lines', fill='toself', name='Properties', line=dict(color="#28a745"), fillcolor='rgba(40, 167, 69, 0.4)'))
+                fig_radar_props.update_layout(polar=dict(radialaxis=dict(visible=True, gridcolor='#DDDDDD'), angularaxis=dict(tickfont=dict(size=12)), bgcolor='rgba(255, 255, 255, 0.5)'), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color="#000000"), showlegend=False, height=400, title=dict(text="Properties for Component 1"))
                 st.plotly_chart(fig_radar_props, use_container_width=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            # --- Prediction Explanation ---
             st.markdown("<h3>Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
-            with st.expander("How does this work?"):
-                st.info(
-                    "This section explains why the model made its prediction. Choose a property and a plot type to see "
-                    "which features had the biggest impact."
-                )
-
             col1, col2 = st.columns(2)
             with col1:
-                property_to_explain = st.selectbox(
-                    "Select a Blend Property to explain:",
-                    [f"BlendProperty{i}" for i in range(1, 11)],
-                    key="shap_property_selector"
-                )
+                property_to_explain = st.selectbox("Select a Blend Property to explain:", [f"BlendProperty{i}" for i in range(1, 11)], key="shap_property_selector")
             with col2:
-                plot_type = st.selectbox(
-                    "Select a plot type:",
-                    ["Force Plot","Waterfall", "Decision Plot"],
-                    key="shap_plot_selector"
-                )
-
+                plot_type = st.selectbox("Select a plot type:", ["Force Plot", "Waterfall", "Decision Plot"], key="shap_plot_selector")
             if property_to_explain:
                 with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
-                    if plot_type == "Waterfall":
-                        col1,col2,col3 = st.columns([.25,1,.25])
-                        with col2:
-                            generate_shap_waterfall_plot(row_data, property_to_explain, assets)
-                    elif plot_type == "Decision Plot":
-                        col1,col2,col3 = st.columns([.25,1,.25])
-                        with col2:
-                            generate_shap_decision_plot(row_data, property_to_explain, assets)
-                    elif plot_type == "Force Plot":
-                        col1,col2,col3 = st.columns([.25,1,.25])
-                        with col2:
-                            generate_shap_force_plot(row_data, property_to_explain, assets)
+                    if plot_type == "Waterfall": generate_shap_waterfall_plot(row_data, property_to_explain, assets)
+                    elif plot_type == "Decision Plot": generate_shap_decision_plot(row_data, property_to_explain, assets)
+                    else: generate_shap_force_plot(row_data, property_to_explain, assets)
 
-            # --- Sensitivity Analysis ---
             st.markdown("<h3>Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
-            with st.expander("How does this work?"):
-                st.info(
-                    """
-                    This tool helps you play 'what-if'. Select a component to vary its fraction from 0% to 100%.
-                    The model then re-calculates all 10 blend properties at each step, showing you how sensitive they are to changes in that single component.
-                    """
-                )
-
             component_to_vary = st.selectbox("Select Component to Vary", [1, 2, 3, 4, 5], format_func=lambda x: f"Component {x}")
-
             if st.button("Run Sensitivity Analysis", use_container_width=True):
+                # ... (rest of your sensitivity analysis code)
                 blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
                 tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
                 progress_bar = st.progress(0, text="🚀 Launching parallel prediction threads...")
-
                 results = []
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures = {executor.submit(worker, args): i for i, args in enumerate(tasks)}
                     for i, future in enumerate(concurrent.futures.as_completed(futures)):
                         prop, analysis_df = future.result()
                         results.append((prop, analysis_df))
-                        progress_bar.progress((i + 1) / len(tasks), text=f"✅ Completed {prop}...")
-
+                        progress_bar.progress((i + 1) / len(tasks), text=f" Completed {prop}...")
                 progress_bar.empty()
-
                 fig_sensitivity = go.Figure()
                 for prop, analysis_df in sorted(results, key=lambda x: int(x[0].replace("BlendProperty", ""))):
-                    fig_sensitivity.add_trace(go.Scatter(
-                        x=analysis_df['varied_fraction'],
-                        y=analysis_df['predicted_value'].astype(float),
-                        mode='lines+markers', name=prop
-                    ))
-
-                fig_sensitivity.update_layout(
-                    title=dict(
-                        text=f"Sensitivity Analysis: Varying Component {component_to_vary}",
-                        font=dict(
-                            size=16,
-                            color="#000000"
-                        )
-                    ),
-                    xaxis=dict(
-                        title_text=f"Fraction of Component {component_to_vary}",
-                        title_font=dict(size=14, color="#000000"),
-                        tickfont=dict(size=12, color="#000000")
-                    ),
-                    yaxis=dict(
-                        title_text="Predicted Value",
-                        title_font=dict(size=14, color="#000000"),
-                        tickfont=dict(size=12, color="#000000")
-                    ),
-                    legend=dict(
-                        font=dict(
-                            size=12,
-                            color="#000000"
-                        )
-                    ),
-                    template="plotly_white",
-                    height=600,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)'
-                )
+                    fig_sensitivity.add_trace(go.Scatter(x=analysis_df['varied_fraction'], y=analysis_df['predicted_value'].astype(float), mode='lines+markers', name=prop))
+                fig_sensitivity.update_layout(title=f"Sensitivity Analysis: Varying Component {component_to_vary}", xaxis_title=f"Fraction of Component {component_to_vary}", yaxis_title="Predicted Value", template="plotly_white", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig_sensitivity, use_container_width=True)
 
+        # --- NEW INVERSE DESIGN SECTION ---
+        elif section == "Inverse Blend Design":
+            # --- Step 1: Select a Base Blend ---
+            st.markdown("<h4>Step 1: Select Baseline Blend Properties</h4>", unsafe_allow_html=True)
+            st.markdown("The optimizer needs a fixed set of properties for the 5 base components. Choose a blend from your uploaded data to serve as this baseline.")
+
+            base_id = st.selectbox(
+                "Select a Blend ID to use its component properties as the base:",
+                df["ID"].unique(),
+                key="inverse_design_base_id"
+            )
+            component_properties_row = df[df["ID"] == base_id].copy()
+
+            # This is the correct and only location for this dataframe
+            st.write("Full data for selected baseline:")
+            st.dataframe(component_properties_row, use_container_width=True)
+
+            st.markdown("---")
+
+            # --- Permanent Box Displaying Baseline Fractions & Properties ---
+            st.subheader(f"Baseline Properties for ID {base_id}")
+
+            frac_col, chart_col = st.columns([1, 2])
+
+            with frac_col:
+                # ... (rest of the code for displaying metric cards remains the same)
+                st.markdown("<h6>Baseline Fractions</h6>", unsafe_allow_html=True)
+                for i in range(1, 6):
+                    render_metric_card(
+                        label=f"Component {i}",
+                        value=component_properties_row[f'Component{i}_fraction'].iloc[0],
+                        key=f"base_frac_card_{i}"
+                    )
+
+            with chart_col:
+                # ... (rest of the code for the bar chart remains the same)
+                st.markdown("<h6>Baseline Blend Properties</h6>", unsafe_allow_html=True)
+                
+                blend_props_series = component_properties_row[[f'BlendProperty{i}' for i in range(1, 11)]].iloc[0]
+                plot_df = pd.DataFrame({
+                    'Property': blend_props_series.index,
+                    'Value': blend_props_series.values
+                })
+
+                fig = go.Figure()
+
+                # --- New Code with Bar Borders ---
+                fig.add_trace(go.Bar(
+                    x=plot_df['Property'],
+                    y=plot_df['Value'],
+                    width= 0.4,
+                    marker=dict(
+                        color=['#1f77b4' if v >= 0 else '#636EFA' for v in plot_df['Value']], # Bar fill color
+                        line=dict(
+                            color='rgba(0, 0, 0, 0.8)', # Border color (dark and semi-transparent)
+                            width=1                     # Border width
+                        )
+                    )
+                ))
+                
+                # CHANGED: Set plot_bgcolor to transparent
+                fig.update_layout(
+                    yaxis_title="Value",
+                    template="plotly_white",
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)', 
+                    yaxis=dict(showgrid=True, gridcolor='rgba(220, 220, 220, 0.5)'),
+                    xaxis=dict(showticklabels=True, tickangle=-45),
+                    height=400,
+                    margin=dict(l=20, r=20, t=30, b=20)
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            # --- Step 2: Define Target Blend Properties ---
+            st.markdown("---")
+            st.markdown("<h4>Step 2: Define Target Blend Properties</h4>", unsafe_allow_html=True)
+            st.markdown("Activate the properties you want to target, then adjust their values. The optimizer will only focus on the active ones.")
+
+            targets = {}
+            c1, c2 = st.columns(2)
+            all_props = [f"BlendProperty{i}" for i in range(1, 11)]
+            
+            # --- New Code with 2-Way Sync ---
+            for i, prop_name in enumerate(all_props):
+                col = c1 if i < 5 else c2
+                with col:
+                    if st.checkbox(f"Target {prop_name}", value=False, key=f"check_{prop_name}"):
+                        default_value = float(component_properties_row[prop_name].iloc[0])
+                        default_value = np.clip(default_value, -3.0, 3.0)
+
+                        # Initialize session state for both widgets if they don't exist
+                        # This prevents them from resetting on every script run
+                        if f'slider_{prop_name}' not in st.session_state:
+                            st.session_state[f'slider_{prop_name}'] = default_value
+                        if f'num_{prop_name}' not in st.session_state:
+                            st.session_state[f'num_{prop_name}'] = default_value
+
+                        slider_col, num_input_col = st.columns([0.7, 0.3])
+                        
+                        with slider_col:
+                            st.slider(
+                                f"Slider for {prop_name}",
+                                min_value=-3.0,
+                                max_value=3.0,
+                                step=0.01,
+                                key=f'slider_{prop_name}',
+                                on_change=sync_num_to_slider, # Updates number input on change
+                                args=(prop_name,),
+                                label_visibility="collapsed"
+                            )
+                        
+                        with num_input_col:
+                            st.number_input(
+                                "Value",
+                                min_value=-3.0,
+                                max_value=3.0,
+                                step=0.01,
+                                key=f'num_{prop_name}',
+                                on_change=sync_slider_to_num, # Updates slider on change
+                                args=(prop_name,),
+                                label_visibility="collapsed"
+                            )
+                            
+                        # The synchronized value can now be read from either state key
+                        targets[prop_name] = st.session_state[f'num_{prop_name}']
+            
+            st.markdown("---")
+
+            # --- Step 3: Run optimization on button press ---
+            if st.button("Suggest Blend Composition", use_container_width=True, disabled=not targets):
+                with st.spinner(" Running inverse design optimization... this may take a moment."):
+                    try:
+                        fractions, preds, msg = inverse_design(targets, component_properties_row, assets)
+                        if fractions is not None:
+                            st.session_state.inverse_design_results = {
+                                "fractions": fractions, "predictions": preds,
+                                "targets": targets, "message": msg
+                            }
+                        else:
+                            st.error(f"Optimization failed: {msg}")
+                            if 'inverse_design_results' in st.session_state: del st.session_state['inverse_design_results']
+                    except Exception as e:
+                        st.error(f"An unexpected error occurred during optimization: {e}")
+                        if 'inverse_design_results' in st.session_state: del st.session_state['inverse_design_results']
+            
+            # --- Step 4: Display results if they exist in session state ---
+            if 'inverse_design_results' in st.session_state and st.session_state.inverse_design_results:
+                results = st.session_state.inverse_design_results
+                st.success(f"Optimization complete! Status: {results['message']}")
+                st.markdown("<br>", unsafe_allow_html=True) # Adds a little space
+
+                # --- ROW 1: Table and Radar Chart ---
+                st.markdown("<h5>Comparison of Target vs. Achieved Properties</h5>", unsafe_allow_html=True)
+                res1_col1, res1_col2 = st.columns([1.2, 1])
+
+                with res1_col1:
+                    # Build the comparison dataframe
+                    comparison_data = []
+                    for prop, target_val in results['targets'].items():
+                        prop_idx = int(prop.split('BlendProperty')[1]) - 1
+                        pred_val = results['predictions'][prop_idx]
+                        absolute_error = abs(pred_val - target_val)
+                        comparison_data.append({
+                            "Property": prop,
+                            "Target Value": target_val,
+                            "Achieved Value": pred_val,
+                            "Absolute Error": absolute_error
+                        })
+                    df_comparison = pd.DataFrame(comparison_data)
+
+                    # Display the formatted dataframe
+                    st.dataframe(
+                        df_comparison.style.format({
+                            "Target Value": "{:.4f}",
+                            "Achieved Value": "{:.4f}",
+                            "Absolute Error": "{:.4f}"
+                        }),
+                        use_container_width=True
+                    )
+
+                with res1_col2:
+                    # Display the radar chart
+                    st.plotly_chart(
+                        plot_inverse_design_results(results['targets'], results['predictions']),
+                        use_container_width=True
+                    )
+
+                st.markdown("---")
+
+                # --- ROW 2: Fractions Text and Pie Chart ---
+                st.markdown("<h5>Suggested Optimal Blend Composition</h5>", unsafe_allow_html=True)
+                res2_col1, res2_col2 = st.columns([1.2, 1])
+
+                with res2_col1:
+                    # Display the optimal fractions using styled metric cards
+                    for i, fraction in enumerate(results['fractions']):
+                        render_metric_card(
+                            label=f"Component {i+1} Fraction",
+                            value=fraction,
+                            key=f"final_frac_card_{i}"
+                        )
+
+                with res2_col2:
+                    # Create and display the pie chart
+                    frac_df = pd.DataFrame({
+                        "Component": [f"Component {i+1}" for i in range(5)],
+                        "Fraction": results['fractions']
+                    })
+                    fig_pie = px.pie(frac_df, values='Fraction', names='Component', hole=0.3)
+                    fig_pie.update_traces(textinfo='percent+label', textfont_size=14)
+                    fig_pie.update_layout(
+                        title_text='Optimal Component Fractions',
+                        showlegend=False,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(t=40, b=0, l=0, r=0)
+                    )
+                    st.plotly_chart(fig_pie, use_container_width=True) 
+
         # --- Bottom Navigation ---
+        st.markdown("---")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("⬅ Back to Prediction Results", use_container_width=True):
                 st.session_state.step = 2
                 st.rerun()
         with col2:
-            if st.button("Upload Another File", use_container_width=True):
-                for key in ["batch_input_df", "final_prediction_df"]:
+            if st.button(" Upload Another File", use_container_width=True):
+                for key in ["batch_input_df", "final_prediction_df", "inverse_design_results"]:
                     st.session_state.pop(key, None)
                 st.session_state.step = 1
                 st.rerun()

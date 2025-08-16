@@ -911,6 +911,9 @@ def main():
     <style>
     /* Style all Streamlit buttons */
     .stButton > button {
+    width: auto !important;
+    display: block !important;
+    margin: 0 auto !important;
     padding: 0.65rem 1rem !important;
     border-radius: 12px !important;
     font-weight: 600 !important;

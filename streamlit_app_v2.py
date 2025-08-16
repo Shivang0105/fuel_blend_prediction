@@ -55,22 +55,25 @@ def generate_global_shap_summary(df, property_to_explain, assets):
 
     # Styling for light theme
     fig.patch.set_facecolor('white')
+    fig.set_figwidth(6) # Set width
+    fig.set_figheight(4)
     ax.set_facecolor('white')
-    plt.tick_params(colors='black')
+    plt.tick_params(colors='black',axis='y', labelsize=4)
+    plt.tick_params(axis='x', labelsize=4)
+    ax.xaxis.label.set_size(4)
     ax.xaxis.label.set_color('black')
     ax.yaxis.label.set_color('black')
     ax.title.set_color('black')
-
     # Find the colorbar axis and style its text
     try:
         cb_ax = fig.axes[1]
-        cb_ax.tick_params(labelcolor="black")
-        cb_ax.set_ylabel(cb_ax.get_ylabel(), color="black")
+        cb_ax.tick_params(labelsize=4, labelcolor="black")
+        cb_ax.set_ylabel(cb_ax.get_ylabel(), fontsize=8, color="black")
     except IndexError:
         pass
     
     # Added a title to the plot for context
-    plt.title(f"Global Feature Importance for {property_to_explain}", fontsize=14, color='black')
+    plt.title(f"Global Feature Importance for {property_to_explain}", fontsize=8, color='black')
 
     st.pyplot(fig, bbox_inches='tight', use_container_width=False)
     plt.close(fig)

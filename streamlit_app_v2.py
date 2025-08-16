@@ -1071,7 +1071,7 @@ def main():
                 <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
             </div>
             """, unsafe_allow_html=True)
-            col1, col2,col3 = st.columns([1.5,1,1.5])
+            col1, col2,col3 = st.columns([1,1,1])
             with col2:
                 if st.button("Launch Prediction",use_container_width=True):
                     st.session_state.step = 1

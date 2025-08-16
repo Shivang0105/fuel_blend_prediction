@@ -20,6 +20,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from streamlit.components.v1 import html
 from streamlit_js_eval import streamlit_js_eval
+import io  
 # --- 1. Backend & Logic Functions ---
 def generate_global_shap_summary(df, property_to_explain, assets):
     """
@@ -116,8 +117,11 @@ def generate_shap_force_plot(row_data, property_to_explain, assets):
     plt.close(fig)
 
 def generate_shap_decision_plot(row_data, property_to_explain, assets):
-    """Generates a beautified SHAP decision plot for light themes, showing only original features."""
-    # --- Data prep ---
+    """
+    Generates a SHAP decision plot and displays it as a static image
+    to ensure correct styling in Streamlit.
+    """
+    # --- 1. Data Prep ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
     shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
@@ -128,44 +132,60 @@ def generate_shap_decision_plot(row_data, property_to_explain, assets):
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
 
-    # --- MODIFIED: Filter features to show only original inputs ---
     filtered_shap_values, filtered_X_single = _filter_shap_features(shap_values, X_single)
 
-    # --- Plotting ---
-    plt.figure(figsize=(10, 6))
-    shap.decision_plot(
-        filtered_shap_values.base_values[0],
-        filtered_shap_values.values[0],
-        filtered_X_single.iloc[0],
-        show=False
-    )
+    # --- 2. Plotting ---
+    try:
+        # Set the default font size. This will be 'baked' into the final image.
+        plt.rcParams['font.size'] = 4 # Adjust for your desired size
 
-    fig = plt.gcf()
-    ax = plt.gca()
+        # Create the SHAP plot in the background
+        shap.decision_plot(
+            filtered_shap_values.base_values[0],
+            filtered_shap_values.values[0],
+            filtered_X_single.iloc[0],
+            show=False
+        )
 
-    # Styling for light theme
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-    plt.tick_params(colors='black')
-    ax.xaxis.label.set_color('black')
-    ax.yaxis.label.set_color('black')
-    ax.title.set_color('black')
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_color('black')
-    ax.spines['bottom'].set_color('black')
+        fig = plt.gcf()
+        ax = plt.gca()
 
-    st.pyplot(fig, bbox_inches='tight')
+        # Apply all your custom styling for the light theme
+        fig.patch.set_facecolor('white')
+        ax.set_facecolor('white')
+        plt.tick_params(colors='black')
+        ax.xaxis.label.set_color('black')
+        ax.yaxis.label.set_color('black')
+        ax.title.set_color('black')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('black')
+        ax.spines['bottom'].set_color('black')
+
+        # --- KEY CHANGES: Render plot to an image buffer ---
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=80, bbox_inches='tight')
+        
+        # Display the static image from the buffer
+        st.image(buf)
+
+    finally:
+        # IMPORTANT: Reset Matplotlib's settings to default
+        plt.rcdefaults()
+        
+    # Close the figure object to free up memory
     plt.close(fig)
 
 def generate_shap_waterfall_plot(row_data, property_to_explain, assets):
     """
-    Generates a SHAP waterfall plot for light themes, showing only original features.
+    Generates a SHAP waterfall plot and displays it as a static image
+    to ensure correct font sizes in Streamlit.
     """
     # --- 1. SETUP & DATA PREPARATION ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
     target_name = f'BlendProperty{target_num}'
     shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
+    
     explainer = shap_assets_dict['explainer']
     features_df = create_features(row_data)
     features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
@@ -173,28 +193,36 @@ def generate_shap_waterfall_plot(row_data, property_to_explain, assets):
     X_single = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
     shap_values = explainer(X_single)
 
-    # --- MODIFIED: Filter features to show only original inputs ---
     filtered_shap_values, _ = _filter_shap_features(shap_values, X_single)
-
-    # --- 2. PLOTTING THE WATERFALL GRAPH ---
+    
     N_FEATURES_TO_SHOW = 20
-    plt.figure(figsize=(8, 6))
 
-    # Pass the first instance of the filtered explanation object
-    shap.waterfall_plot(filtered_shap_values[0], max_display=N_FEATURES_TO_SHOW, show=False)
+    # --- 2. PLOTTING ---
+    try:
+        # Set the default font size. This will be 'baked' into the final image.
+        plt.rcParams['font.size'] = 4  # Adjust for your desired size
 
-    fig = plt.gcf()
-    ax = plt.gca()
+        shap.waterfall_plot(
+            filtered_shap_values[0], 
+            max_display=N_FEATURES_TO_SHOW, 
+            show=False
+        )
 
-    # Styling for light theme
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-    plt.tick_params(colors='black')
-    ax.xaxis.label.set_color('black')
-    ax.yaxis.label.set_color('black')
-    ax.title.set_color('black')
+        fig = plt.gcf()
+        fig.patch.set_facecolor('white')
 
-    st.pyplot(fig, bbox_inches='tight')
+        # --- KEY CHANGES: Render plot to an image buffer ---
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=80, bbox_inches='tight')
+        
+        # Display the static image from the buffer
+        st.image(buf)
+
+    finally:
+        # IMPORTANT: Reset Matplotlib's settings to default
+        plt.rcdefaults()
+        
+    # Close the figure object to free up memory
     plt.close(fig)
 
 def create_features(df):
@@ -1603,11 +1631,17 @@ def main():
             if property_to_explain:
                 with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
                     if plot_type == "Waterfall":
-                        generate_shap_waterfall_plot(row_data, property_to_explain, assets)
+                        col1,col2,col3 = st.columns([.25,1,.25])
+                        with col2:
+                            generate_shap_waterfall_plot(row_data, property_to_explain, assets)
                     elif plot_type == "Decision Plot":
-                        generate_shap_decision_plot(row_data, property_to_explain, assets)
+                        col1,col2,col3 = st.columns([.25,1,.25])
+                        with col2:
+                            generate_shap_decision_plot(row_data, property_to_explain, assets)
                     elif plot_type == "Force Plot":
-                        generate_shap_force_plot(row_data, property_to_explain, assets)
+                        col1,col2,col3 = st.columns([.25,1,.25])
+                        with col2:
+                            generate_shap_force_plot(row_data, property_to_explain, assets)
 
             # --- Sensitivity Analysis ---
             st.markdown("<h3>Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)

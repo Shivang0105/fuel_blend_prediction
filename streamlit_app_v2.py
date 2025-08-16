@@ -987,12 +987,10 @@ def main():
             div[data-testid="stButton"] > button {
                 font-size: 1.3em !important; /* force size */
                 font-weight: 800 !important; /* force bold */
-                padding: 0.9em 1.2em!important;
                 border-radius: 50px!important;
                 background-image: linear-gradient(45deg, #0057b7 30%, #00d4ff 70%)!important; 
                 color: white !important;
                 border: none!important;
-                justify-content: center!important;
                 transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out!important;
                 box-shadow: 0 4px 18px rgba(0, 212, 255, 0.35)!important;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.15)!important;
@@ -1073,9 +1071,9 @@ def main():
                 <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
             </div>
             """, unsafe_allow_html=True)
-            col1, col2,col3, col4, col5 = st.columns([1,1,1,1,1])
-            with col3:
-                if st.button("Launch Prediction Tool"):
+            col1, col2,col3 = st.columns([2,1,2])
+            with col2:
+                if st.button("Launch Prediction"):
                     st.session_state.step = 1
                     streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
                     st.rerun()

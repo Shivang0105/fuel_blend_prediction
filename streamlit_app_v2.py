@@ -409,12 +409,10 @@ def plot_missing_matrix(df):
     return fig
 
 # --- New, More Accurate inverse_design Function ---
-# --- New Hybrid-Optimizer inverse_design Function ---
-# --- Tuned Hybrid-Optimizer for Faster Performance ---
+# --- New, Speed-Tuned Multi-Start Function ---
 def inverse_design(target_properties, component_properties_row, assets, num_components=5):
     """
-    Finds optimal fractions using a tuned hybrid global-local optimization strategy for a
-    good balance between accuracy and speed.
+    Finds optimal fractions using a speed-tuned multi-start SLSQP approach.
     """
     prop_cols = [c for c in component_properties_row.columns if '_Property' in c]
     fixed_properties_df = component_properties_row[prop_cols]
@@ -439,44 +437,43 @@ def inverse_design(target_properties, component_properties_row, assets, num_comp
             error += normalized_error ** 2
         return error
 
-    # --- Optimizer Configuration ---
+    # --- Optimizer Configuration (Tuned for Speed) ---
     bounds = [(0, 1)] * num_components
     constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+    optimizer_options = {'maxiter': 1200, 'ftol': 1e-6, 'disp': False} # CHANGED: Reduced maxiter
 
-    # --- STAGE 1: Global Search with Differential Evolution (Tuned for Speed) ---
-    de_result = differential_evolution(
-        objective_function,
-        bounds=bounds,
-        maxiter=15,  # CHANGED: Reduced from 20 for a faster coarse search
-        popsize=12,  # CHANGED: Reduced from 15
-        tol=0.01
-    )
+    # --- Multi-Start Optimization (Faster Version) ---
+    n_starts = 3  # CHANGED: Reduced from 5 to 3 for a significant speed-up
+    best_result = None
 
-    # --- STAGE 2: Local Refinement with SLSQP (Tuned for Speed) ---
-    if de_result.success:
-        initial_guess = de_result.x
-        
-        # Tuned options for faster refinement
-        slsqp_options = {'maxiter': 1250, 'ftol': 1e-6, 'disp': False} # CHANGED: Relaxed maxiter and ftol
+    # Create a list of starting points
+    initial_guesses = [np.ones(num_components) / num_components]
+    for _ in range(n_starts - 1):
+        random_guess = np.random.rand(num_components)
+        initial_guesses.append(random_guess / random_guess.sum())
 
-        final_result = minimize(
+    # Run the optimizer from each starting point
+    for guess in initial_guesses:
+        result = minimize(
             objective_function,
-            initial_guess,
+            guess,
             method='SLSQP',
             bounds=bounds,
             constraints=constraints,
-            options=slsqp_options
+            options=optimizer_options
         )
-        
-        if final_result.success:
-            final_fractions = final_result.x
-            final_frac_df = pd.DataFrame([final_fractions], columns=[f'Component{i+1}_fraction' for i in range(num_components)])
-            final_input_df = pd.concat([final_frac_df, fixed_properties_df.reset_index(drop=True)], axis=1)
-            final_predictions = predict_properties(final_input_df, assets)
-            return final_fractions, final_predictions[0], "Hybrid optimization successful."
-    
-    # Fallback message if optimization fails
-    return None, None, "Optimization failed to converge."
+        if result.success and (best_result is None or result.fun < best_result.fun):
+            best_result = result
+            
+    # --- Process and Return the Best Result Found ---
+    if best_result and best_result.success:
+        final_fractions = best_result.x
+        final_frac_df = pd.DataFrame([final_fractions], columns=[f'Component{i+1}_fraction' for i in range(num_components)])
+        final_input_df = pd.concat([final_frac_df, fixed_properties_df.reset_index(drop=True)], axis=1)
+        final_predictions = predict_properties(final_input_df, assets)
+        return final_fractions, final_predictions[0], "Multi-start optimization successful."
+    else:
+        return None, None, "Optimization failed to converge from any starting point."
 
 def render_metric_card(label, value, key):
     """Renders a styled card to display a label and a value."""

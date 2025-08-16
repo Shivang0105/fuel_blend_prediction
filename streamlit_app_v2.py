@@ -410,10 +410,11 @@ def plot_missing_matrix(df):
 
 # --- New, More Accurate inverse_design Function ---
 # --- New Hybrid-Optimizer inverse_design Function ---
+# --- Tuned Hybrid-Optimizer for Faster Performance ---
 def inverse_design(target_properties, component_properties_row, assets, num_components=5):
     """
-    Finds optimal fractions using a hybrid global-local optimization strategy to maximize accuracy
-    without a heavy time penalty.
+    Finds optimal fractions using a tuned hybrid global-local optimization strategy for a
+    good balance between accuracy and speed.
     """
     prop_cols = [c for c in component_properties_row.columns if '_Property' in c]
     fixed_properties_df = component_properties_row[prop_cols]
@@ -440,26 +441,23 @@ def inverse_design(target_properties, component_properties_row, assets, num_comp
 
     # --- Optimizer Configuration ---
     bounds = [(0, 1)] * num_components
-    # Constraint for sum of fractions to be 1
     constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
 
-    # --- STAGE 1: Global Search with Differential Evolution (Fast & Broad) ---
-    # Use low settings for a quick, coarse search to find a good starting region
+    # --- STAGE 1: Global Search with Differential Evolution (Tuned for Speed) ---
     de_result = differential_evolution(
         objective_function,
         bounds=bounds,
-        maxiter=20, # Low number of iterations for speed
-        popsize=15,
+        maxiter=15,  # CHANGED: Reduced from 20 for a faster coarse search
+        popsize=12,  # CHANGED: Reduced from 15
         tol=0.01
     )
 
-    # --- STAGE 2: Local Refinement with SLSQP (Precise & Focused) ---
-    # Use the best result from the global search as the starting point
+    # --- STAGE 2: Local Refinement with SLSQP (Tuned for Speed) ---
     if de_result.success:
         initial_guess = de_result.x
         
-        # Use aggressive options for a highly precise final refinement
-        slsqp_options = {'maxiter': 5000, 'ftol': 1e-10, 'disp': False}
+        # Tuned options for faster refinement
+        slsqp_options = {'maxiter': 1250, 'ftol': 1e-6, 'disp': False} # CHANGED: Relaxed maxiter and ftol
 
         final_result = minimize(
             objective_function,

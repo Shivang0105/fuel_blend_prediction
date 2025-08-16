@@ -21,7 +21,6 @@ import plotly.graph_objects as go
 from streamlit.components.v1 import html
 from streamlit_js_eval import streamlit_js_eval
 # --- 1. Backend & Logic Functions ---
-# This section contains the real logic to load and run your models.
 def generate_global_shap_summary(df, property_to_explain, assets):
     """
     Generates a global SHAP summary (beeswarm) plot for the entire dataset, styled for a light theme.
@@ -40,12 +39,16 @@ def generate_global_shap_summary(df, property_to_explain, assets):
 
     # --- 3. Calculate SHAP values for the ENTIRE dataframe ---
     shap_values = explainer(X_full)
+    
+    # Key Step: Call the helper function to filter features before plotting
+    filtered_shap_values, filtered_X_single = _filter_shap_features(shap_values, X_full)
 
     # --- 4. Plotting (Light Theme) ---
-    plt.figure(figsize=(12, 8))
+    # Restored a reasonable figure size
+    plt.figure(figsize=(1, 1))
 
-    # Generate the beeswarm summary plot
-    shap.summary_plot(shap_values, X_full, show=False)
+    # Generate the beeswarm summary plot using the FILTERED data
+    shap.summary_plot(filtered_shap_values, filtered_X_single, show=False)
 
     fig = plt.gcf()
     ax = plt.gca()
@@ -65,8 +68,11 @@ def generate_global_shap_summary(df, property_to_explain, assets):
         cb_ax.set_ylabel(cb_ax.get_ylabel(), color="black")
     except IndexError:
         pass
+    
+    # Added a title to the plot for context
+    plt.title(f"Global Feature Importance for {property_to_explain}", fontsize=14, color='black')
 
-    st.pyplot(fig, bbox_inches='tight')
+    st.pyplot(fig, bbox_inches='tight', use_container_width=False)
     plt.close(fig)
 
 def generate_shap_force_plot(row_data, property_to_explain, assets):
@@ -1482,22 +1488,24 @@ def main():
                     ticktext=new_labels
                 )
                 st.plotly_chart(fig_props, use_container_width=True)
-            if blend_props:
-                summary_data = []
-                for prop in blend_props:
-                    min_idx = numeric_df[prop].idxmin()  # index of min value
-                    max_idx = numeric_df[prop].idxmax()  # index of max value
-                    summary_data.append({
-                        "Property": prop,
-                        "Min Value": numeric_df.loc[min_idx, prop],
-                        "Index of Min": min_idx,
-                        "Max Value": numeric_df.loc[max_idx, prop],
-                        "Index of Max": max_idx
-                    })
-                
-                min_max_df = pd.DataFrame(summary_data)
-                st.markdown("### BlendProperties Min/Max Table")
-                st.dataframe(min_max_df, use_container_width=True)
+            st.markdown("<h3>Global Feature Importance (SHAP)</h3>", unsafe_allow_html=True)
+            st.info(
+                "This plot shows the most important features for a selected property across the entire uploaded dataset. "
+                "Each point is a single prediction. Red points indicate that a high feature value pushed the prediction higher, "
+                "while blue points indicate a low feature value pushed the prediction higher."
+            )
+
+            property_to_explain_global = st.selectbox(
+                "Select a Blend Property to see its most influential features:",
+                [f"BlendProperty{i}" for i in range(1, 11)],
+                key="global_shap_property_selector"
+            )
+
+            if property_to_explain_global:
+                with st.spinner(f"Generating global SHAP summary for {property_to_explain_global}..."):
+                    # We pass the dataframe without the prediction columns to the SHAP function
+                    input_data_for_shap = df.drop(columns=[f"BlendProperty{i}" for i in range(1, 11)])
+                    generate_global_shap_summary(input_data_for_shap, property_to_explain_global, assets)
             st.markdown("---")
 
         elif section == "Single Blend Deep Dive":

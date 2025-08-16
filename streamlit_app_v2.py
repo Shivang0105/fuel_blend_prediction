@@ -24,8 +24,7 @@ import io
 # --- 1. Backend & Logic Functions ---
 def generate_global_shap_summary(df, property_to_explain, assets):
     """
-    Generates a global SHAP summary (beeswarm) plot for a SAMPLE of the dataset, 
-    styled for a light theme, to prevent memory errors.
+    Generates a global SHAP summary (beeswarm) plot for the entire dataset, styled for a light theme.
     """
     # --- 1. Setup ---
     target_num = int(property_to_explain.split('BlendProperty')[1])
@@ -33,28 +32,17 @@ def generate_global_shap_summary(df, property_to_explain, assets):
     shap_assets_dict = assets['all_models'][target_name]['shap_explainer']
     explainer = shap_assets_dict['explainer']
 
-    # --- 2. Preprocess the dataframe (with subsampling) ---
-    
-    # --- SOLUTION: Subsample the data if it's too large ---
-    SAMPLE_SIZE = 200 
-    if len(df) > SAMPLE_SIZE:
-        st.info(f"💡 To save memory, this global plot is generated from a random sample of {SAMPLE_SIZE} rows.")
-        df_sample = df.sample(n=SAMPLE_SIZE, random_state=42)
-    else:
-        df_sample = df
-    # --- End of change ---
-
-    # Process the sample, not the full dataframe
-    features_df = create_features(df_sample)
+    # --- 2. Preprocess the ENTIRE dataframe ---
+    features_df = create_features(df)
     features_df = features_df.reindex(columns=assets['feature_columns'], fill_value=0)
     scaled_features = assets['scaler'].transform(features_df)
-    X_sample = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
+    X_full = pd.DataFrame(scaled_features, columns=assets['feature_columns'])
 
-    # --- 3. Calculate SHAP values for the SAMPLE ---
-    shap_values = explainer(X_sample)
+    # --- 3. Calculate SHAP values for the ENTIRE dataframe ---
+    shap_values = explainer(X_full)
     
     # Key Step: Call the helper function to filter features before plotting
-    filtered_shap_values, filtered_X_single = _filter_shap_features(shap_values, X_sample)
+    filtered_shap_values, filtered_X_single = _filter_shap_features(shap_values, X_full)
 
     # --- 4. Plotting (Light Theme) ---
     # Restored a reasonable figure size

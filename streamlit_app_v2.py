@@ -56,7 +56,7 @@ def generate_global_shap_summary(df, property_to_explain, assets):
     # Styling for light theme
     fig.patch.set_facecolor('white')
     fig.set_figwidth(6) # Set width
-    fig.set_figheight(4)
+    fig.set_figheight(4) 
     ax.set_facecolor('white')
     plt.tick_params(colors='black',axis='y', labelsize=4)
     plt.tick_params(axis='x', labelsize=4)

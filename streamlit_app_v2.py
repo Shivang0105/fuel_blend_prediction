@@ -1070,11 +1070,12 @@ def main():
                 <p style="color:#005A9C;">Step inside the AI-powered lab that helps design sustainable fuel blends at scale.</p>
             </div>
             """, unsafe_allow_html=True)
-            
-            if st.button("Launch Prediction Tool", use_container_width=True):
-                st.session_state.step = 1
-                streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
-                st.rerun()
+            col1,col2,col3 = st.columns(3)
+            with col2:
+                if st.button("Launch Prediction Tool"):
+                    st.session_state.step = 1
+                    streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
+                    st.rerun()
 
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)

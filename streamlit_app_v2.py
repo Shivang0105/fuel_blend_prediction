@@ -990,7 +990,7 @@ def main():
                 background-image: linear-gradient(45deg, #0057b7 30%, #00d4ff 70%)!important; 
                 color: white !important;
                 border: none!important;
-                justify-content: center;
+                justify-content: center!important;
                 transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out!important;
                 box-shadow: 0 4px 18px rgba(0, 212, 255, 0.35)!important;
                 text-shadow: 1px 1px 2px rgba(0,0,0,0.15)!important;

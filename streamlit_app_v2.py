@@ -1631,15 +1631,15 @@ def main():
             if property_to_explain:
                 with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
                     if plot_type == "Waterfall":
-                        col1,col2,col3 = st.columns([.25,1,.25])
+                        col1,col2,col3 = st.columns([.25,1.5,.25])
                         with col2:
                             generate_shap_waterfall_plot(row_data, property_to_explain, assets)
                     elif plot_type == "Decision Plot":
-                        col1,col2,col3 = st.columns([.25,1,.25])
+                        col1,col2,col3 = st.columns([.25,1.5,.25])
                         with col2:
                             generate_shap_decision_plot(row_data, property_to_explain, assets)
                     elif plot_type == "Force Plot":
-                        col1,col2,col3 = st.columns([.25,1,.25])
+                        col1,col2,col3 = st.columns([.25,1.5,.25])
                         with col2:
                             generate_shap_force_plot(row_data, property_to_explain, assets)
 

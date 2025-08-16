@@ -678,43 +678,38 @@ def display_team_section():
     """
     Displays the new 'Meet the Team' section with a 2x2 grid and text block.
     """
-    # --- Team Member Data ---
-    # You can easily update team members' info here
+
+    # --- Team Member Data (with image paths + zoom settings) ---
     team_members = [
-        {"name": "Abhinav Tyagi", "role": "Project Lead & ML Architect"},
-        {"name": "Siddharth Bansal", "role": "Data Scientist"},
-        {"name": "Shivang Sharma", "role": "ML Engineer"},
-        {"name": "Utkarsh Singh", "role": "UI/UX & Frontend Developer"}
+        {"name": "Abhinav Tyagi", "role": "Project Lead & ML Architect", "img": "images/Abhinav.jpg", "zoom": 1.8, "shift": 15},
+        {"name": "Siddharth Bansal", "role": "Data Scientist", "img": "images/Siddharth.jpg", "zoom": 1.4, "shift": 8},
+        {"name": "Shivang Sharma", "role": "ML Engineer", "img": "images/Shivang.jpeg", "zoom": 1.1, "shift": 0},
+        {"name": "Utkarsh Singh", "role": "UI/UX & Frontend Developer", "img": "images/Utkarsh.jpg", "zoom": 1.1, "shift": 0}
     ]
 
-    # --- Base64 Encoded Placeholder SVG ---
-    # An SVG icon is used as a placeholder to avoid external image dependencies.
-    placeholder_svg = """
-    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-        <polyline points="21 15 16 10 5 21"></polyline>
-    </svg>
-    """
-    b64_svg = base64.b64encode(placeholder_svg.encode()).decode()
+    # --- Helper: Encode local image to base64 ---
+    def get_base64_image(image_path):
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+        return None
 
-    # --- CSS for Styling ---
-    # This CSS block creates the card layout, circular images, and text styling.
-    st.markdown(f"""
+    # --- Base CSS ---
+    css_base = """
     <style>
-        .team-container {{
+        .team-container {
             display: flex;
             align-items: center;
             gap: 2rem;
-        }}
-        .team-grid {{
+        }
+        .team-grid {
             flex: 1;
-        }}
-        .team-text {{
+        }
+        .team-text {
             flex: 1;
             padding-left: 2rem;
-        }}
-        .team-card {{
+        }
+        .team-card {
             background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
@@ -724,14 +719,14 @@ def display_team_section():
             text-align: center;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            height: 100%; /* Ensure cards in a row have same height */
+            height: 100%; 
             margin-bottom: 1.5rem;
-        }}
-        .team-card:hover {{
+        }
+        .team-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
-        }}
-        .profile-img-container {{
+        }
+        .profile-img-container {
             width: 120px;
             height: 120px;
             border-radius: 50%;
@@ -739,58 +734,74 @@ def display_team_section():
             display: flex;
             align-items: center;
             justify-content: center;
-            /* Gradient matches your app's theme! */
             background: linear-gradient(45deg, #f7b0c8, #b9e6ff);
             padding: 5px;
-        }}
-        .profile-img {{
+        }
+        .profile-img {
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            background-color: white; /* Fallback color */
+            background-color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-        }}
-        .profile-img img {{
-            width: 50%;
-            height: 50%;
-            filter: grayscale(100%) invert(80%) sepia(5%) saturate(500%) hue-rotate(180deg) brightness(1.2) contrast(1);
-        }}
-        .team-name {{
+        }
+        .profile-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        .team-name {
             font-weight: 700;
             font-size: 1.2rem;
-            color: #013A63; /* Dark blue for contrast */
+            color: #013A63;
             margin-bottom: 0.25rem;
-        }}
-        .team-role {{
-            color: #005A9C; /* Lighter blue */
+        }
+        .team-role {
+            color: #005A9C;
             font-size: 0.9rem;
-        }}
-        .team-text .small-header {{
+        }
+        .team-text .small-header {
             font-weight: 600;
             color: #0072c6;
             margin-bottom: -0.5rem;
-        }}
-        .team-text .big-header {{
+        }
+        .team-text .big-header {
             font-size: 2.8rem;
             font-weight: 800;
             color: #004E92;
             margin-bottom: 1rem;
             line-height: 1.2;
-        }}
-        .team-text p:not(.small-header) {{
+        }
+        .team-text p:not(.small-header) {
             color: #333;
             font-size: 1.1rem;
             line-height: 1.6;
-        }}
+        }
     </style>
-    """, unsafe_allow_html=True)
+    """
+
+    # --- Dynamic CSS for each member (based on zoom/shift) ---
+    css_dynamic = "<style>\n"
+    for member in team_members:
+        class_name = member["name"].split()[0].lower()  # e.g., abhinav, siddharth
+        zoom = member.get("zoom", 1.0)
+        shift = member.get("shift", 0)
+        css_dynamic += f"""
+        .profile-img img.{class_name} {{
+            transform: scale({zoom}) translateY({shift}%);
+            object-position: center;
+        }}
+        """
+    css_dynamic += "</style>"
+
+    # Inject both CSS blocks
+    st.markdown(css_base + css_dynamic, unsafe_allow_html=True)
 
     # --- HTML Layout ---
-    # Using st.columns to create the main left/right layout
-    grid_col, text_col = st.columns([1.1, 1]) # Give a bit more space to the grid
+    grid_col, text_col = st.columns([1.1, 1])
 
     with text_col:
         st.markdown("""
@@ -803,27 +814,29 @@ def display_team_section():
         """, unsafe_allow_html=True)
 
     with grid_col:
-        # Create a 2x2 grid using nested columns
         row1_col1, row1_col2 = st.columns(2)
         row2_col1, row2_col2 = st.columns(2)
-        
         cols = [row1_col1, row1_col2, row2_col1, row2_col2]
 
-        # Loop to populate the grid
         for i, member in enumerate(team_members):
             with cols[i]:
+                img_b64 = get_base64_image(member["img"])
+                img_src = f"data:image/jpeg;base64,{img_b64}" if img_b64 else "https://via.placeholder.com/120"
+                
+                # assign class name based on first name
+                class_name = member["name"].split()[0].lower()
+                
                 st.markdown(f"""
                 <div class="team-card">
                     <div class="profile-img-container">
                         <div class="profile-img">
-                            <img src="data:image/svg+xml;base64,{b64_svg}" alt="Profile Icon">
+                            <img class="{class_name}" src="{img_src}" alt="{member['name']}">
                         </div>
                     </div>
                     <div class="team-name">{member['name']}</div>
                     <div class="team-role">{member['role']}</div>
                 </div>
                 """, unsafe_allow_html=True)
-
 def display_footer():
     """
     Compact, full-bleed footer that matches the app theme,
@@ -1279,9 +1292,15 @@ def main():
             else:
                 final_df = edited_df
 
-            st.session_state.batch_input_df = final_df
 
             st.subheader("File Health Analysis")
+            st.session_state.batch_input_df = final_df
+
+            is_valid, msg = validate_batch_input(final_df)
+            if not is_valid:
+                st.error(f" Validation Failed :( : {msg}")
+            else:
+                st.success("Validation Passed :) : Your data looks good! You can now proceed to prediction.")
             col1, col2 = st.columns(2)
             with col1:
                 st.plotly_chart(plot_missing_matrix(final_df), use_container_width=True)
@@ -1297,13 +1316,6 @@ def main():
                 )
 
             st.markdown("---")
-
-            is_valid, msg = validate_batch_input(final_df)
-            if not is_valid:
-                st.error(f" Validation Failed :( : {msg}")
-            else:
-                st.success("Validation Passed :) : Your data looks good! You can now proceed to prediction.")
-
             if st.button("Predict ➡", use_container_width=True, disabled=not is_valid):
                 st.session_state.step = 2
                 streamlit_js_eval(js_expressions="window.scrollTo(0,0)")
@@ -1536,7 +1548,9 @@ def main():
                 with st.spinner(f"Generating global SHAP summary for {property_to_explain_global}..."):
                     # We pass the dataframe without the prediction columns to the SHAP function
                     input_data_for_shap = df.drop(columns=[f"BlendProperty{i}" for i in range(1, 11)])
-                    generate_global_shap_summary(input_data_for_shap, property_to_explain_global, assets)
+                    col1,col2,col3 = st.columns([.25,1,.25])
+                    with col2:
+                        generate_global_shap_summary(input_data_for_shap, property_to_explain_global, assets)
             st.markdown("---")
 
         elif section == "Single Blend Deep Dive":
@@ -1631,15 +1645,15 @@ def main():
             if property_to_explain:
                 with st.spinner(f"Generating {plot_type} for {property_to_explain}..."):
                     if plot_type == "Waterfall":
-                        col1,col2,col3 = st.columns([.25,1.5,.25])
+                        col1,col2,col3 = st.columns([.25,1,.25])
                         with col2:
                             generate_shap_waterfall_plot(row_data, property_to_explain, assets)
                     elif plot_type == "Decision Plot":
-                        col1,col2,col3 = st.columns([.25,1.5,.25])
+                        col1,col2,col3 = st.columns([.25,1,.25])
                         with col2:
                             generate_shap_decision_plot(row_data, property_to_explain, assets)
                     elif plot_type == "Force Plot":
-                        col1,col2,col3 = st.columns([.25,1.5,.25])
+                        col1,col2,col3 = st.columns([.25,1,.25])
                         with col2:
                             generate_shap_force_plot(row_data, property_to_explain, assets)
 

@@ -1246,7 +1246,7 @@ def main():
         # --- Page Content ---
         with st.container():
             try:
-                logo_path = "images/ChatGPT Image Aug 13, 2025, 04_28_27 PM.png"
+                logo_path = "images/Shell Logo.png"
                 logo_base64 = image_to_base64(logo_path)
                 _ , col2, _ = st.columns([1, 1, 1])
                 with col2:
@@ -1319,7 +1319,7 @@ def main():
     
         # --- CUSTOM STYLED HEADER (FIXED) ---
     try:
-        logo_path = "images/ChatGPT Image Aug 13, 2025, 04_28_27 PM.png"
+        logo_path = "images/Shell Logo.png"
         logo_base64 = image_to_base64(logo_path)
         logo_img_html = f'<div class="logo-bg"><img src="data:image/png;base64,{logo_base64}"></div>'
     except FileNotFoundError:

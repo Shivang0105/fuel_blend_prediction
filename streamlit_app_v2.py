@@ -819,9 +819,9 @@ def render_flow_diagram():
     st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     render_flow_block("Meta Model","RidgeCV Ensemble","Linearly combines base model predictions, using RidgeCV to find the best regularization strength and learn optimal weights for a robust final prediction.","#DC2626","🧰")
     st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
-    render_flow_block("Calibration","Isotonic Regression","Adjusts ensemble predictions using non-parametric Isotonic Regression, reducing systematic bias and aligning outputs closer to observed data for improved reliability.","#38BDF8","📈",480)
+    render_flow_block("Calibration","Isotonic Regression","Adjusts ensemble predictions using non-parametric Isotonic Regression, reducing systematic bias and aligning outputs closer to observed data for improved reliability.","#38BDF8","📈")
     st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
-    render_flow_block("Final Output","10 Optimized Predictions","Combines calibrated predictions with baseline weighted averages to produce accurate, reliable, and actionable estimates for 10 key blend properties.","#14B8A6","🎯",480)
+    render_flow_block("Final Output","10 Optimized Predictions","Combines calibrated predictions with baseline weighted averages to produce accurate, reliable, and actionable estimates for 10 key blend properties.","#14B8A6","🎯")
 
 def worker(args):
     prop, row_data, assets, component_to_vary = args

@@ -511,41 +511,42 @@ def plot_inverse_design_results(targets, predictions):
     """
     prop_names = list(targets.keys())
     target_values = list(targets.values())
-    # Extract the predicted values that correspond to the targets
     pred_values = [predictions[int(p.split('BlendProperty')[1])-1] for p in prop_names]
 
     fig = go.Figure()
 
-    # Trace for Predicted Properties (Green)
+    # Trace for Achieved Properties
     fig.add_trace(go.Scatterpolar(
         r=pred_values, theta=prop_names, fill='toself', name='Achieved Properties',
         line=dict(color='#28a745'), fillcolor='rgba(40, 167, 69, 0.4)'
     ))
 
-    # Trace for Target Properties (Blue)
+    # Trace for Target Properties
     fig.add_trace(go.Scatterpolar(
         r=target_values, theta=prop_names, fill='toself', name='Target Properties',
         line=dict(color='#0072c6'), fillcolor='rgba(0, 114, 198, 0.4)'
     ))
 
-    # --- New, Better-Aligned Layout Code ---
+    # --- FIX: A more compact layout for better alignment ---
     fig.update_layout(
-        # The new title dictionary provides better spacing
-        title=dict(
-            text="Target vs. Achieved Blend Properties",
-            y=0.96 # Adjusts title's vertical position
-        ),
         polar=dict(
             radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
-            angularaxis=dict(tickfont=dict(size=10)),
+            angularaxis=dict(tickfont=dict(size=11)), # Slightly larger font
             bgcolor='rgba(255, 255, 255, 0.5)'
         ),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color="#222222"),
-        height=400, # Reduced height for better alignment with the table
-        legend=dict(yanchor="top", y=1.15, xanchor="center", x=0.5),
-        margin=dict(l=40, r=40, t=60, b=40) # Adds padding
+        height=350,  # FIX: Reduced height to better match the table
+        legend=dict(
+            orientation="h", # FIX: Horizontal legend is more compact
+            yanchor="bottom",
+            y=1.02, # FIX: Position it just above the plot area
+            xanchor="center",
+            x=0.5
+        ),
+        # FIX: Tighter margins, especially at the top
+        margin=dict(l=40, r=40, t=40, b=40) 
     )
     return fig
 
@@ -1906,10 +1907,12 @@ def main():
                             "Achieved Value": "{:.4f}",
                             "Absolute Error": "{:.4f}"
                         }),
-                        use_container_width=True
+                        use_container_width=True,
+                        height=350
                     )
 
                 with res1_col2:
+
                     # Display the radar chart
                     st.plotly_chart(
                         plot_inverse_design_results(results['targets'], results['predictions']),

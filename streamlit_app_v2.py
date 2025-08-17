@@ -802,7 +802,7 @@ def render_flow_diagram():
     render_flow_block(
     "Feature Selection",
     "Reduces dimensionality with SHAP",
-    "Uses SHAP values from LightGBM to rank feature importance, keeping only the top predictors per target to improve generalization and reduce noise.",
+    "A separate LightGBM model is trained for each target solely to compute SHAP values. These models are different from the base LightGBM used later in stacking. The top-ranked features per target are retained to reduce noise and improve generalization.",
     "#4B5563",
     "🔍"
     )

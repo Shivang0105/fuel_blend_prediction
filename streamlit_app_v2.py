@@ -799,6 +799,14 @@ def render_flow_diagram():
     st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     render_flow_block("Feature Engineering","Creates blend-weighted features","Generates weighted averages, residuals, and statistical summaries to transform raw data into more informative features for better model learning.","#6B7280","🛠")
     st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
+    render_flow_block(
+    "Feature Selection",
+    "Reduces dimensionality with SHAP",
+    "Uses SHAP values from LightGBM to rank feature importance, keeping only the top predictors per target to improve generalization and reduce noise.",
+    "#4B5563",
+    "🔍"
+    )
+    st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
     with col1:
         render_flow_block("LightGBM","Base Model","A high-performance gradient-boosting framework using leaf-wise tree growth for fast, memory-efficient, and accurate training.","#10B981","🌲",260)

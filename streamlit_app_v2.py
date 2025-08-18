@@ -844,7 +844,7 @@ def display_team_section():
         {"name": "Abhinav Tyagi", "role": "ML Engineer", "img": "images/Abhinav.jpg", "zoom": 1.8, "shift": 15},
         {"name": "Siddharth Bansal", "role": "Data Scientist", "img": "images/Siddharth.jpg", "zoom": 1.4, "shift": 8},
         {"name": "Shivang Sharma", "role": "ML Engineer", "img": "images/Shivang.jpeg", "zoom": 1.1, "shift": 0},
-        {"name": "Utkarsh Singh", "role": "Cloud Engineer", "img": "images/Utkarsh.jpg", "zoom": 1.1, "shift": 0}
+        {"name": "Utkarsh Singh", "role": "DevOps Engineer", "img": "images/Utkarsh.jpg", "zoom": 1.1, "shift": 0}
     ]
 
     # --- Helper: Encode local image to base64 ---

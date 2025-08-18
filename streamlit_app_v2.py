@@ -239,32 +239,50 @@ def generate_shap_waterfall_plot(row_data, property_to_explain, assets):
     plt.close(fig)
 
 def create_features(df):
-    """This function must be IDENTICAL to the one in your training script."""
-    df = df.copy()
+    """This function is an optimized version that avoids fragmentation."""
+    df_original = df.copy()
+    new_cols = {} # Use a dictionary to store new columns
+
+    # Calculate BlendWeighted properties
     for i in range(1, 11):
-        df[f'BlendWeighted_Property{i}'] = sum(df[f'Component{j}_fraction'] * df[f'Component{j}_Property{i}'] for j in range(1, 6))
+        col_name = f'BlendWeighted_Property{i}'
+        new_cols[col_name] = sum(df_original[f'Component{j}_fraction'] * df_original[f'Component{j}_Property{i}'] for j in range(1, 6))
+
+    # Calculate Residuals
     for i in range(1, 11):
-        blend = df[f'BlendWeighted_Property{i}']
+        blend = new_cols[f'BlendWeighted_Property{i}']
         for j in range(1, 6):
-            df[f'Residual_Component{j}_Prop{i}'] = df[f'Component{j}_Property{i}'] - blend
+            col_name = f'Residual_Component{j}_Prop{i}'
+            new_cols[col_name] = df_original[f'Component{j}_Property{i}'] - blend
+
+    # Calculate Component stats
     for j in range(1, 6):
         props = [f'Component{j}_Property{i}' for i in range(1, 11)]
-        df[f'Component{j}_mean'] = df[props].mean(axis=1)
-        df[f'Component{j}_std'] = df[props].std(axis=1)
+        new_cols[f'Component{j}_mean'] = df_original[props].mean(axis=1)
+        new_cols[f'Component{j}_std'] = df_original[props].std(axis=1)
+
+    # Calculate Fraction x Property interactions
     for j in range(1, 6):
         for i in range(1, 11):
-            df[f'Frac{j}_x_Prop{i}'] = df[f'Component{j}_fraction'] * df[f'Component{j}_Property{i}']
+            col_name = f'Frac{j}_x_Prop{i}'
+            new_cols[col_name] = df_original[f'Component{j}_fraction'] * df_original[f'Component{j}_Property{i}']
+
+    # Calculate Property stats
     for i in range(1, 11):
         props = [f"Component{j}_Property{i}" for j in range(1, 6)]
-        df[f'Property{i}_max'] = df[props].max(axis=1)
-        df[f'Property{i}_min'] = df[props].min(axis=1)
-        df[f'Property{i}_std'] = df[props].std(axis=1)
+        new_cols[f'Property{i}_max'] = df_original[props].max(axis=1)
+        new_cols[f'Property{i}_min'] = df_original[props].min(axis=1)
+        new_cols[f'Property{i}_std'] = df_original[props].std(axis=1)
+
+    # Calculate Fraction stats
     frac_cols = [f"Component{i}_fraction" for i in range(1, 6)]
-    df["frac_sum"] = df[frac_cols].sum(axis=1)
-    df["frac_max"] = df[frac_cols].max(axis=1)
-    df["frac_min"] = df[frac_cols].min(axis=1)
-    df["frac_std"] = df[frac_cols].std(axis=1)
-    return df
+    new_cols["frac_sum"] = df_original[frac_cols].sum(axis=1)
+    new_cols["frac_max"] = df_original[frac_cols].max(axis=1)
+    new_cols["frac_min"] = df_original[frac_cols].min(axis=1)
+    new_cols["frac_std"] = df_original[frac_cols].std(axis=1)
+
+    # Combine all new columns with the original DataFrame at once
+    return pd.concat([df_original, pd.DataFrame(new_cols)], axis=1)
 
 @st.cache_resource
 def load_assets():

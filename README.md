@@ -15,9 +15,6 @@ The goal is to develop robust AI models that can:
 ---
 
 ## 📁 Directory Structure
-
-## 📂 Project Structure
-
 ```bash
 .
 ├── .devcontainer/              # Dev container configuration

@@ -75,15 +75,32 @@ Upload your blend input file, analyze global/local explainability, and try Inver
 
 ## Screenshots
 
-<p float="left">
-  <img src="images/image1.jpeg" width="32%" />
-  <img src="images/image2.jpeg" width="32%" />
-  <img src="images/image3.jpeg" width="32%" />
-</p>
 <p align="center">
-  <img src="images/image4.jpeg" width="49%" />
-  <img src="images/image5.jpeg" width="49%" />
+  <figure style="display: inline-block; margin: 10px;">
+    <img src="images/image1.jpeg" width="32%" />
+    <figcaption align="center">Caption 1</figcaption>
+  </figure>
+  <figure style="display: inline-block; margin: 10px;">
+    <img src="images/image2.jpeg" width="32%" />
+    <figcaption align="center">Caption 2</figcaption>
+  </figure>
+  <figure style="display: inline-block; margin: 10px;">
+    <img src="images/image3.jpeg" width="32%" />
+    <figcaption align="center">Caption 3</figcaption>
+  </figure>
 </p>
+
+<p align="center">
+  <figure style="display: inline-block; margin: 10px;">
+    <img src="images/image4.jpeg" width="49%" />
+    <figcaption align="center">Caption 4</figcaption>
+  </figure>
+  <figure style="display: inline-block; margin: 10px;">
+    <img src="images/image5.jpeg" width="49%" />
+    <figcaption align="center">Caption 5</figcaption>
+  </figure>
+</p>
+
 ---
 
 ## Key Features

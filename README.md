@@ -5,7 +5,7 @@ Welcome to our solution for the **Shell.ai Hackathon for Sustainable and Afforda
 
 ---
 
-## 🚩 Project Overview
+## Project Overview
 
 The goal is to develop robust AI models that can:
 - Predict final blend properties of complex fuels from their component fractions and properties.
@@ -40,7 +40,7 @@ The goal is to develop robust AI models that can:
 ```
 
 ---
-## 🚀 Getting Started
+## Getting Started
 
 1. **Clone the repository**
 
@@ -73,9 +73,7 @@ Upload your blend input file, analyze global/local explainability, and try Inver
 
 ---
 
-## 📊 Key Features
-
-## ✨ Key Features
+## Key Features
 
 - **Easy Batch File Upload:** Seamlessly upload blend data in **CSV format** for quick batch predictions.
 
@@ -101,13 +99,16 @@ Upload your blend input file, analyze global/local explainability, and try Inver
 ## 🧑‍💻 Team
 
 A multidisciplinary team passionate about ML, AI, and sustainable energy solutions.
+- **Abhinav Tyagi** (ML Engineer)
+- **Shivang Sharma** (ML Engineer)
+- **Siddharth Mohan Bansal** (Data Scientist)
+- **Utkarsh Singh** (DevOps Engineer)
 
 ---
 
 ## 📄 Documentation
 
-For a deep dive into methodology, model architecture, and examples, see [`EXPLANATION.md`](EXPLANATION.md).
-
+For a deep dive into methodology, model architecture, and analysis, see [`EXPLANATION.md`](EXPLANATION.md).
 ---
 
 ## 🤝 Contributing

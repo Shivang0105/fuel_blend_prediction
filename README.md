@@ -55,11 +55,6 @@ cd fuel_blend_prediction
 pip install -r requirements.txt
 ```
 
-
-3. **(Optional) Set up development container**
-```bash
-Use `.devcontainer` or `.vscode` folders for rapid environment configuration.
-```
 ---
 
 ## 🛠️ Usage
@@ -80,11 +75,26 @@ Upload your blend input file, analyze global/local explainability, and try Inver
 
 ## 📊 Key Features
 
-- **Advanced Feature Engineering:** Captures complex non-linearities via domain-inspired features.
-- **Ensemble Modeling:** Combines LightGBM, XGBoost, CatBoost, and neural network predictions.
-- **Model Explainability:** Integrated SHAP explanations at both global and local levels.
-- **Inverse Blend Design:** Optimizes input fractions to achieve user-defined property goals.
-- **Rich UI:** Interactive data validation, predictions table, visual analysis, and export options.
+## ✨ Key Features
+
+- **Easy Batch File Upload:** Seamlessly upload blend data in **CSV format** for quick batch predictions.
+
+- **Automatic Data Validation:** Instantly highlights **missing values** and checks if **component fractions sum to 1**, ensuring your data is ready for analysis.
+
+- **Interactive Prediction Table:** View, filter, and sort all prediction results for each blend and property directly in your browser.
+
+- **Single Blend Deep Dive:** Select any blend to explore its **complete composition**, **SHAP-based feature explanations**, and **impact visualizations**.
+
+- **Overall Dataset Analysis:** Visualize the distribution of component fractions and predicted properties with **interactive box plots and charts**.
+
+- **Property Sensitivity Analysis:** Instantly see how tweaking any single component’s fraction affects all predicted blend properties.
+
+- **Inverse Blend Design:** Set your desired blend property targets and let the app suggest **optimal blend recipes**.
+
+- **Downloadable Results:** Easily export your predictions and analysis as **CSV files** for further work or reporting.
+
+- **Modern, Intuitive UI:** Fast, responsive, and visually-rich dashboard built using **Streamlit** for an effortless user experience.
+
 
 ---
 

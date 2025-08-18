@@ -45,13 +45,15 @@ git clone https://github.com/Shivang0105/fuel_blend_prediction.git
 cd fuel_blend_prediction
 ```
 
-```bash
+
 2. **Install dependencies**
+```bash
 pip install -r requirements.txt
 ```
 
+
+3. **(Optional) Set up development container**
 ```bash
-3. **(Optional) Set up development container**  
 Use `.devcontainer` or `.vscode` folders for rapid environment configuration.
 ```
 ---

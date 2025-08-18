@@ -22,16 +22,20 @@ The goal is to develop robust AI models that can:
 ├── .vscode/                    # IDE settings for Python compatibility
 ├── catboost_info/              # CatBoost model artifacts/info
 ├── datasets/                   # Dataset files (train/test/sample_submission)
+    ├── corrupted.csv          
+    ├── sample_submission.csv
+    ├── test.csv
+    ├── train.csv
 ├── images/                     # Project-related images and visualizations
-├── models/                     # Trained model files and artifacts
-├── output/                     # Prediction outputs and logs
+├── models/                     # Trained model weights
+├── output/                     # Round 1 Prediction Output
 ├── feature_engineering.py      # Feature engineering logic
-├── model_training.py           # ML model training pipeline
+├── model_training.py           # Round 1 Prediction Model Code
 ├── nn_model.py                 # Neural network ensemble implementation
 ├── predict_blend_properties.py # Batch prediction script
 ├── streamlit_app_v2.py         # Interactive Streamlit dashboard
 ├── requirements.txt            # Python dependencies
-└── EXPLANATION.md              # Full methodology and technical documentation
+└── EXPLANATION.md              # Methodology and technical documentation
 
 ```
 

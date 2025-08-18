@@ -44,8 +44,8 @@ The goal is to develop robust AI models that can:
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/<your_username>/<repo_name>.git
-cd <repo_name>
+git clone https://github.com/Shivang0105/fuel_blend_prediction.git
+cd fuel_blend_prediction
 ```
 
 ```bash

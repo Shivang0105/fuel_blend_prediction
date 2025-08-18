@@ -1466,7 +1466,7 @@ def main():
             with col1:
                 st.plotly_chart(plot_missing_matrix(final_df), use_container_width=True)
                 st.markdown(
-                    '<p style="color:black; text-align: center;"><b>COACH\'S TIP:</b> This matrix shows missing data (blue spots). A fully light-gray chart is healthy!</p>',
+                    '<p style="color:black; text-align: center;"><b>COACH\'S TIP:</b> This matrix shows missing data (red spots). A fully light-green chart is healthy!</p>',
                     unsafe_allow_html=True
                 )
             with col2:

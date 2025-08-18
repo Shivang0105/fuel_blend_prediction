@@ -75,10 +75,7 @@ Upload your blend input file, analyze global/local explainability, and try Inver
 
 ## Screenshots
 
-![![WhatsApp Image 2025-08-18 at 5 05 52 PM](https://github.com/user-attachments/assets/1455a515-7601-4175-a845-8ab697b713f5)
-](image1.png) ![![WhatsApp Image 2025-08-18 at 5 06 54 PM](https://github.com/user-attachments/assets/b98107e8-7fc0-426b-8873-1a101a5b5853)
-](image2.png) ![![WhatsApp Image 2025-08-18 at 5 07 32 PM](https://github.com/user-attachments/assets/e6d8471e-b88b-405c-8004-4972ebd8f672)
-](image3.png)
+![Img1](images/image1.jpeg) ![Img2](images/image1.jpeg) ![Img3](images/image1.jpeg)
 
 ---
 

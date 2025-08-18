@@ -76,13 +76,13 @@ Upload your blend input file, analyze global/local explainability, and try Inver
 ## Screenshots
 
 <p float="left">
-  <img src="images/image1.jpeg" width="32%" />
-  <img src="images/image2.jpeg" width="32%" />
+  <img src="images/image1.jpeg" width="33%" />
+  <img src="images/image2.jpeg" width="33%" />
   <img src="images/image3.jpeg" width="32%" />
 </p>
 <p align="center">
-  <img src="images/image1.jpeg" width="49%" />
-  <img src="images/image2.jpeg" width="49%" />
+  <img src="images/image4.jpeg" width="49%" />
+  <img src="images/image5.jpeg" width="49%" />
 </p>
 ---
 

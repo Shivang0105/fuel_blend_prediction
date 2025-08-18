@@ -408,8 +408,7 @@ def plot_missing_matrix(df):
     )
     return fig
 
-# --- New, More Accurate inverse_design Function ---
-# --- New, Speed-Tuned Multi-Start Function ---
+# --- Inverse_design Function ---
 def inverse_design(target_properties, component_properties_row, assets, num_components=5):
     """
     Finds optimal fractions using a speed-tuned multi-start SLSQP approach.
@@ -440,10 +439,10 @@ def inverse_design(target_properties, component_properties_row, assets, num_comp
     # --- Optimizer Configuration (Tuned for Speed) ---
     bounds = [(0, 1)] * num_components
     constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
-    optimizer_options = {'maxiter': 1750, 'ftol': 1e-4, 'disp': False} # CHANGED: Reduced maxiter
+    optimizer_options = {'maxiter': 2500, 'ftol': 1e-4, 'disp': False} # CHANGED: Reduced maxiter
 
     # --- Multi-Start Optimization (Faster Version) ---
-    n_starts = 3  # CHANGED: Reduced from 5 to 3 for a significant speed-up
+    n_starts = 10  
     best_result = None
 
     # Create a list of starting points
@@ -527,7 +526,6 @@ def plot_inverse_design_results(targets, predictions):
         line=dict(color='#0072c6'), fillcolor='rgba(0, 114, 198, 0.4)'
     ))
 
-    # --- FIX: A more compact layout for better alignment ---
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, gridcolor='#DDDDDD'),
@@ -1715,7 +1713,7 @@ def main():
                 # ... (rest of your sensitivity analysis code)
                 blend_props = [f"BlendProperty{i}" for i in range(1, 11)]
                 tasks = [(prop, row_data.copy(), assets, component_to_vary) for prop in blend_props]
-                progress_bar = st.progress(0, text="🚀 Launching parallel prediction threads...")
+                progress_bar = st.progress(0, text=" Launching parallel prediction threads...")
                 results = []
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     futures = {executor.submit(worker, args): i for i, args in enumerate(tasks)}
@@ -1732,6 +1730,15 @@ def main():
 
         # --- NEW INVERSE DESIGN SECTION ---
         elif section == "Inverse Blend Design":
+            st.info(
+                "**What is Inverse Design?** \n\n"
+                "This tool works backward. Instead of predicting properties from a known blend, "
+                "you define the desired target properties for your outcome. The optimizer will then "
+                "find the ideal component fractions required to achieve those targets, using one of your "
+                "uploaded blends as a component baseline. \n\n"
+                "Note : Due to limited computational power for backend, inverse prediction might take some time (5-10 min)."
+            )
+
             # --- Step 1: Select a Base Blend ---
             st.markdown("<h4>Step 1: Select Baseline Blend Properties</h4>", unsafe_allow_html=True)
             st.markdown("The optimizer needs a fixed set of properties for the 5 base components. Choose a blend from your uploaded data to serve as this baseline.")
@@ -1860,7 +1867,7 @@ def main():
 
             # --- Step 3: Run optimization on button press ---
             if st.button("Suggest Blend Composition", use_container_width=True, disabled=not targets):
-                with st.spinner(" Running inverse design optimization... this may take a moment."):
+                with st.spinner(" Running inverse design optimization... this might take some time."):
                     try:
                         fractions, preds, msg = inverse_design(targets, component_properties_row, assets)
                         if fractions is not None:

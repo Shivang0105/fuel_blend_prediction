@@ -108,7 +108,7 @@ A multidisciplinary team passionate about ML, AI, and sustainable energy solutio
 
 ## 📄 Documentation
 
-For a deep dive into methodology, model architecture, and analysis, see [`https://drive.google.com/file/d/18g6DD1doUtHTk9UmT8ADm5UbZ_TmgILv/view?usp=sharing`](Functioning of the Prototype).
+For a deep dive into methodology, model architecture, and analysis, see [`Functioning of the Prototype`](https://drive.google.com/file/d/18g6DD1doUtHTk9UmT8ADm5UbZ_TmgILv/view?usp=sharing).
 
 ---
 

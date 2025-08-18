@@ -802,7 +802,7 @@ def render_flow_diagram():
     "Feature Selection",
     "Reduces dimensionality with SHAP",
     "A separate LightGBM model is trained for each target solely to compute SHAP values. These models are different from the base LightGBM used later in stacking. The top-ranked features per target are retained to reduce noise and improve generalization.",
-    "#4B5563",
+    "#DC2626",
     "🔍"
     )
     st.markdown(f"<div style='text-align: center; margin-top: -12px; margin-bottom: -12px;'><img src='data:image/gif;base64,{gif_base64}' width='60' style='filter: invert(1);' /></div>", unsafe_allow_html=True)
@@ -968,6 +968,7 @@ def display_team_section():
             <h2 class="big-header">Locus</h2>
             <p>We are a passionate group of students—Abhinav, Siddharth, Shivang, and Utkarsh—united by our enthusiasm for machine learning and data science.</p>
             <p>Our diverse skills and collaborative spirit drive us to tackle complex challenges and build innovative, AI-powered solutions.</p>
+            <p>And we all love coffee :D . </p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1299,11 +1300,11 @@ def main():
             st.markdown('<div class="section-header">How We Solve It</div>', unsafe_allow_html=True)
             col1, col2, col3 = st.columns(3)
             with col1:
-                render_flow_block("Calibrated Predictions", "Confidence-tuned ensemble outputs.", "Our models are calibrated to provide not just predictions, but a reliable measure of confidence, ensuring trustworthy results.", "#2ECC71", "📈",200)
+                render_flow_block("Feature Engineering", "Creates derived features & weights.", "Automated creation of hundreds of insightful features that capture complex interactions between components.", "#3B82F6", "🧮",200)    
             with col2:
-                render_flow_block("Feature Engineering", "Creates derived features & weights.", "Automated creation of hundreds of insightful features that capture complex interactions between components.", "#3B82F6", "🧮",200)
-            with col3:
                 render_flow_block("Model Stacking", "Combines strengths of multiple learners.", "We use a meta-learning approach, where a final model learns to optimally weigh the predictions from our base models.", "#6B7280", "🛠",200)
+            with col3:
+                render_flow_block("Calibrated Predictions", "Confidence-tuned ensemble outputs.", "Our models are calibrated to provide not just predictions, but a reliable measure of confidence, ensuring trustworthy results.", "#2ECC71", "📈",200)
 
             st.markdown('<div class="section-header">What Powers Our Predictions</div>', unsafe_allow_html=True)
             render_flow_diagram()

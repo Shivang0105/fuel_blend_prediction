@@ -1717,7 +1717,6 @@ def main():
             st.markdown("<h3>Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
             st.info(
                 """
-                What is Prediction Explanation? \n
                 This tool helps you understand **why** the model made a specific prediction for a single blend composition. Instead of just giving you a number, it uses a technique called **SHAP** (SHapley Additive exPlanations) to break down the prediction and show you which features had the biggest influence.
                 """
             )
@@ -1734,7 +1733,6 @@ def main():
 
             st.markdown("<h3>Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
             st.info(
-                "What is Sensitivity Analysis? \n\n"
                 "This tool works backward. Instead of predicting properties from a known blend, you define the desired target properties for your outcome. The optimizer will then find the ideal component fractions required to achieve those targets, using one of your uploaded blends as a component baseline. \n"
                 "Note: Due to limited computational power for backend, inverse prediction might take some time (30-50 sec)."
             )

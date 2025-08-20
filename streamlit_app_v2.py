@@ -1727,6 +1727,14 @@ def main():
                     else: generate_shap_force_plot(row_data, property_to_explain, assets)
 
             st.markdown("<h3>Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
+            st.info(
+                "**What is Inverse Design?** \n\n"
+                "This tool works backward. Instead of predicting properties from a known blend, "
+                "you define the desired target properties for your outcome. The optimizer will then "
+                "find the ideal component fractions required to achieve those targets, using one of your "
+                "uploaded blends as a component baseline. \n\n"
+                "Note : Due to limited computational power for backend, inverse prediction might take some time (5-10 min)."
+            )
             component_to_vary = st.selectbox("Select Component to Vary", [1, 2, 3, 4, 5], format_func=lambda x: f"Component {x}")
             if st.button("Run Sensitivity Analysis", use_container_width=True):
                 # ... (rest of your sensitivity analysis code)

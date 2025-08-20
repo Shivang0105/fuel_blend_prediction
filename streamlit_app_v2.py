@@ -1728,11 +1728,11 @@ def main():
 
             st.markdown("<h3>Sensitivity Analysis (What If?)</h3>", unsafe_allow_html=True)
             st.info(
-                "What is Sensitivity Analysis? \n\n"
-                "Note : Due to limited computational power for backend, inverse prediction might take some time (5-10 min)."
-                "Sensitivity analysis is a "what-if" tool that allows you to see how a small change in one input affects the final prediction."
-                "Instead of changing all the inputs at once, you can select a single component and the application will show you how the predicted properties of the final blend change as you vary the fraction of that component from 0% to 100%."
-                "This helps you understand which components have the biggest impact on the blend's performance, enabling you to make more informed decisions when creating new formulas.\n\n"
+                """What is Sensitivity Analysis?
+                Note: Due to limited computational power for backend, inverse prediction might take some time (5-10 min).
+                Sensitivity analysis is a "what-if" tool that allows you to see how a small change in one input affects the final prediction.
+                Instead of changing all the inputs at once, you can select a single component and the application will show you how the predicted properties of the final blend change as you vary the fraction of that component from 0% to 100%.
+                This helps you understand which components have the biggest impact on the blend's performance, enabling you to make more informed decisions when creating new formulas."""
             )
             component_to_vary = st.selectbox("Select Component to Vary", [1, 2, 3, 4, 5], format_func=lambda x: f"Component {x}")
             if st.button("Run Sensitivity Analysis", use_container_width=True):

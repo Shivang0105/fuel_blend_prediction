@@ -1715,6 +1715,14 @@ def main():
                 st.plotly_chart(fig_radar_props, use_container_width=True)
 
             st.markdown("<h3>Prediction Explanation (Why?)</h3>", unsafe_allow_html=True)
+            st.info(
+                """
+                ### Prediction Explanation (Why?) 🤖
+                This tool helps you understand **why** the model made a specific prediction for a single blend composition. Instead of just giving you a number, it uses a technique called **SHAP** (SHapley Additive exPlanations) to break down the prediction and show you which features had the biggest influence.
+            
+                The plots you see, such as the **Force Plot**, **Waterfall Plot**, and **Decision Plot**, visualize this breakdown. They show how each individual feature's value contributed to pushing the prediction higher or lower than the average. This is crucial for building trust in the model and gaining actionable insights into what drives a blend's properties.
+                """
+            )
             col1, col2 = st.columns(2)
             with col1:
                 property_to_explain = st.selectbox("Select a Blend Property to explain:", [f"BlendProperty{i}" for i in range(1, 11)], key="shap_property_selector")

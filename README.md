@@ -3,8 +3,9 @@
 
 Welcome to our solution for the **Shell.ai Hackathon for Sustainable and Affordable Energy 2025**. This repository contains an end-to-end system for predicting and optimizing properties of sustainable fuel blends using advanced machine learning and explainable AI.
 
----
+Project Live at - https://fuelblendprediction.streamlit.app/
 
+---
 ## Project Overview
 
 The goal is to develop robust AI models that can:
